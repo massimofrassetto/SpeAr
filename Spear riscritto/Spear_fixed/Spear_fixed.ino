@@ -74,7 +74,7 @@ int okVal=LOW;
 int backgroundSensorVal;
 int readSensorVal;
 int x=0;
-
+//default
 void configureSensor(void){
   //tsl.setGain(TSL2591_GAIN_LOW);      // 1x gain (bright light)
   //tsl.setGain(TSL2591_GAIN_MED);      // 25x gain
@@ -111,7 +111,7 @@ void configureSensor(void){
   lcd.print("ms");
   delay(3000);
 }
-
+//default
 void tslSensorChecking (void){
   lcd.clear(); lcd.setCursor(0, 0);
   lcd.print("TSL2591");
@@ -141,8 +141,7 @@ void gratingMotorZeroPoint (void){
   myMotor->step(1050, FORWARD, SINGLE); 
   tone(46,400,500);
 }
-
-
+//default
 void gratingMotorChecking (void){
   lcd.clear(); lcd.setCursor(0, 0);
   lcd.print("Grating Motor");
