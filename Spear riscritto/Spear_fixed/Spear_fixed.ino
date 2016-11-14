@@ -20,11 +20,11 @@ Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2);
 
 const int piezoPin=46;
 const int lampCheckingSensorPin=A9;
-int lampCheckingSensorVal=0;
+//int lampCheckingSensorVal=0;
 const int lampSwitchPin=25;
 int lampSwitchVal;
 const int positionMotorSensorPin=A8;
-int positionMotorSensorVal=0;
+//int positionMotorSensorVal=0;
 
 const int chipSelect=53;
 
@@ -125,42 +125,42 @@ void tslSensorChecking (void){
     lcd.print("OK");
   } 
   else{
-    printWiringError();
+    printWiringError(piezoPin);
   }
   delay(2500);
   configureSensor();
   delay(3000);
 }
 
-void gratingMotorZeroPoint (void){
-  positionMotorSensorVal=analogRead(positionMotorSensorPin);
+void gratingMotorZeroPoint (const int sensMotPin, const int piezoZeroPin){
+  int positionMotorSensorVal=analogRead(sensMotPin);
   while(positionMotorSensorVal<=470){
-    positionMotorSensorVal=analogRead(positionMotorSensorPin);
+    positionMotorSensorVal=analogRead(sensMotPin);
     myMotor->step(1, BACKWARD, SINGLE); 
   }
   myMotor->step(1050, FORWARD, SINGLE); 
-  tone(46,400,500);
+  tone(piezoZeroPin, 400, 500);
 }
 //default
-void gratingMotorChecking (void){
+void gratingMotorChecking (const int sensMotCheckPin, const int piezoCheckPin){
   lcd.clear(); lcd.setCursor(0, 0);
   lcd.print("Grating Motor");
   lcd.setCursor(0, 1);
   lcd.print("Positioning...");
-  gratingMotorZeroPoint();
+  gratingMotorZeroPoint(sensMotCheckPin, piezoCheckPin);
   lcd.setCursor(0, 1);
   lcd.print("Motor Dgr.= 0'");
   delay(3000);
 }
 
-void SDCardChecking (void){
+void SDCardChecking (const int chipSel){
   lcd.clear(); lcd.setCursor(0, 0);
   lcd.print("Initializing");
   lcd.setCursor(0, 1);
   lcd.print("SD card...");
   delay(2000);
-  if (!SD.begin(53)) {
-    printWiringError();
+  if (!SD.begin(chipSel)) {
+    printWiringError(piezoPin);
     delay(2500);
     return;
   }
@@ -171,41 +171,41 @@ void SDCardChecking (void){
     delay(3000);
 }
 
-void printWiringError(){
+void printWiringError (const int allarmPin){
   lcd.clear(); lcd.setCursor(0, 0);
   lcd.print("OH-oh..");
-  tone(piezoPin, 400, 1000);
+  tone(allarmPin, 400, 1000);
   delay(500);
-  tone(piezoPin, 400, 1000);
+  tone(allarmPin, 400, 1000);
   lcd.setCursor(0, 1);
   lcd.print("check wiring?");
 }
 
-void lampChecking (void){
-  //int lampOkArray[3]={1,0,1};
+void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState, const int piezoLCPin){
+  int lampCheckingSensorVal=0;
   int lampChecingkArray[3]={0,0,0};
   lcd.clear(); lcd.setCursor(0, 0);
   lcd.print("Lamp");
   lcd.setCursor(0, 1);
   lcd.print("Checking");
   delay(2500);
-  lampCheckingSensorVal=analogRead(lampCheckingSensorPin);
+  lampCheckingSensorVal=analogRead(lampSensPin);
   lcd.print(".");
   if(lampCheckingSensorVal>500){
     lampChecingkArray[0]=1;
   }
-  lampSwitchVal=LOW;
-  digitalWrite(lampSwitchPin, lampSwitchVal);
+  (*lampState)=LOW;
+  digitalWrite(lampStatePin, (*lampState));
   delay(1000);
-  lampCheckingSensorVal=analogRead(lampCheckingSensorPin);
+  lampCheckingSensorVal=analogRead(lampSensPin);
   lcd.print(".");
   if(lampCheckingSensorVal<500){
     lampChecingkArray[1]=0;
   }
-  lampSwitchVal=HIGH;
-  digitalWrite(lampSwitchPin, lampSwitchVal);
+  (*lampState)=HIGH;
+  digitalWrite(lampStatePin, (*lampState));
   delay(1000);
-  lampCheckingSensorVal=analogRead(lampCheckingSensorPin);
+  lampCheckingSensorVal=analogRead(lampSensPin);
   lcd.print(".");
   if(lampCheckingSensorVal>500){
     lampChecingkArray[2]=1;
@@ -220,13 +220,69 @@ void lampChecking (void){
     lcd.print("is OK!!");
   }
   else{
-    printWiringError();
+    printWiringError(piezoLCPin);
   }
   delay(2500);
 }
 
 void setup(void){
+  Serial.begin(9600);
+  AFMS.begin();
+  myMotor->setSpeed(50);  //rpm
+  pinMode(okPin, INPUT);
+  pinMode(backPin, INPUT);
+  pinMode(nextPin, INPUT);
+  pinMode(upPin, INPUT);
+  pinMode(downPin, INPUT);
+  pinMode(lampCheckingSensorPin, INPUT);
+  pinMode(lampSwitchPin, OUTPUT);
+  digitalWrite(lampSwitchPin, HIGH);
+  lcd.begin(16, 2);
+  delay(1000);
+  lcd.print("Spe.Ar. Project");
+  lcd.setCursor(0, 1);
+  lcd.print("V 1.0  SW 10");
+  tone(piezoPin, 500, 100);
+  delay(100);
+  tone(piezoPin, 300, 200);
+  delay(100);
+  tone(piezoPin, 500, 400);
+  delay(4300);
+  lcd.clear(); lcd.setCursor(0, 0);
+  lcd.print("Starting");
+  lcd.setCursor(0, 1);
+  lcd.print("Instrument...");
+  delay(2500);
   
+  lampChecking(lampCheckingSensorPin, lampSwitchPin, &lampSwitchVal, piezoPin);
+  tslSensorChecking();
+  gratingMotorChecking(positionMotorSensorPin, piezoPin);
+  SDCardChecking(chipSelect);
+  
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Instrument");
+  lcd.setCursor(0, 1);
+  lcd.print("is Ready!!!!");
+  tone(piezoPin, 600, 200);
+  delay(200);
+  tone(piezoPin, 600, 200);
+  delay(100);
+  tone(piezoPin, 900, 400);
+  delay(1000);
+  lcd.noDisplay();
+  delay(500);
+  lcd.display();
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Press 'OK'");
+  lcd.setCursor(0, 1);
+  lcd.print("to Start...");
+  while(okVal==LOW){
+    okVal=digitalRead(okPin);
+  }
+  okVal=LOW;
 }
 
 void loop(void){
