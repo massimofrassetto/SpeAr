@@ -1,0 +1,5 @@
+SPEAR	KEYWORD1
+lampChecking	KEYWORD2
+tslSensorChecking	KEYWORD2
+gratingMotorChecking	KEYWORD2
+SDCardChecking	KEYWORD2
