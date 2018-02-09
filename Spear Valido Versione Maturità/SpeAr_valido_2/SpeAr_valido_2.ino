@@ -1,6 +1,5 @@
 #include <LiquidCrystal.h>
-
-#include <Wire.h>
+#include <Wire.h> //this library allows you to communicate with I2C / TWI devices
 #include <Adafruit_Sensor.h>
 #include "Adafruit_TSL2591.h"
 
