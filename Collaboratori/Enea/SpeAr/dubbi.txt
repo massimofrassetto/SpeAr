@@ -1,5 +1,5 @@
 1) A cosa serve il potenziometro in relazione con lo schermo LCD?
-2) A cosa serve il lo speaker?
+2) A cosa serve lo speaker?
 3) Ci sono un fotoresistore e un sensore di luminosità, a cosa servono?
 4) A cosa serve il modulo RTS?
 5) Come viene gestito il lettore di SD?
