@@ -1,40 +1,49 @@
-/*    Inclusione Librerie   */
+/*    Libraries' Inclusion   */
 
-//permette di controllare LCD
+//to control a lcd
 #include <LiquidCrystal.h>
 
-//permette di comunicare con dispositivi I2C/TWI -> Pin utilizzabili 20 (SDA), 21 (SCL)
+//allows the comunication towards I2C/TWI devices -> Useful pins for Mega 20 (SDA), 21 (SCL)
 #include <Wire.h>
 
-//entrambe le seguenti librerie permettono di controllare il sensore di luminosità Adafruit
+//to control adafruit brightness sensor
 #include <Adafruit_Sensor.h>
 #include "Adafruit_TSL2591.h"
 
-//permette di utilizzare lo shield per servomotori e motori DC
+//so control adafruit servo shield
 #include <Adafruit_MotorShield.h>
 
-//permette di comunicare con dispositivi seriali, usando arduino come master -> pin 50, 51, 52
+//it allows serial devices' control using arduino as master -> pin 50, 51, 52
 #include <SPI.h>
 
-//permette di leggere e secrivere su schede SD in FAT16 e FAT32
+//necessary to handle SD with FAT16 or FAT32
 #include <SD.h>
 
-//permette di leggere un tastierino in forma matriciale
+//to read a keypad
 #include <Keypad.h>
 
+/*    Devices' Inizialization-Declaration    */
+
+//lcd's inizialization (see the wiring)
 LiquidCrystal lcd(8,9,10,11,12,13);
 
-Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
+/*  To create an instance of the Adafruit_TSL2591 driver, simple declare an appropriate object,
+ *   along with a 32-bit numeric value to identify this sensor (in case you have several TSL2591s,
+ *   and want to track them separately in a logging system).
+ */
+Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591);
 
-Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
+// Create the motor shield object with the default I2C address
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();
+//connecting a stepper with 200 steps/revolution at port 2
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2);
 
 const int piezoPin=46;
-const int lampCheckingSensorPin=A9;
+const int lampCheckingSensorPin = 9;
 int lampCheckingSensorVal=0;
 const int lampSwitchPin=25;
 int lampSwitchVal;
-const int positionMotorSensorPin=A8;
+const int positionMotorSensorPin = 8;
 int positionMotorSensorVal=0;
 
 const int chipSelect=53;
