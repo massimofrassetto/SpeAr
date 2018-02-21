@@ -20,13 +20,13 @@ Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the senso
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2);
 
-const int piezoPin=46;//pin del cicalino
-const int lampCheckingSensorPin=A9;//pin della resistenza per vedere se la lampada si accende
+const int piezoPin=46;  //pin del cicalino
+const int lampCheckingSensorPin=A9; //pin della resistenza per vedere se la lampada si accende
 int lampCheckingSensorVal=0; //valore di verifica (credo si possa eliminare usando una semplice variabile di uscita da funzione)
 const int lampSwitchPin=25; //pin per spegnere e accendere la lampada
 int lampSwitchVal; //val per memorizzare se accesa o spenta
 const int positionMotorSensorPin=A8; //pin del sensore per il posizionamento del reticolo
-int positionMotorSensorVal=0; //valore di rotazione del reticolo
+int positionMotorSensorVal=0;   //valore di rotazione del reticolo
 
 const int chipSelect=53; //per controllare l'sd
 
@@ -46,11 +46,11 @@ Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS
 char customKey;
 String keyPadString;
 //fine variabili paddino
-int lowSpectraLimit=380;//frequenza minore
-int highSpectraLimit=780;//frequenza maggiore
-int lowGratingMotorLimit=850;//passi che corrispondono alla low
-int highGratingMotorLimit=1250;//passi che corrispondo alla high
-int gratingMotorSteps;//passi che deve compiere lo stepper
+int lowSpectraLimit=380; //frequenza minore
+int highSpectraLimit=780; //frequenza maggiore
+int lowGratingMotorLimit=850; //passi che corrispondono alla low
+int highGratingMotorLimit=1250; //passi che corrispondo alla high
+int gratingMotorSteps; //passi che deve compiere lo stepper
 //2 frequenze estreme nel caso si voglia analizzare un range
 int lambdaMin;
 int lambdaMax;
