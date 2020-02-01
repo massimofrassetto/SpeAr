@@ -11,42 +11,33 @@
 
 #include <Keypad.h>
 
-LiquidCrystal lcd(8,9,10,11,12,13);
+#include "CONSTANTS.h"
 
-Adafruit_TSL2591 tsl = Adafruit_TSL2591(2591); // pass in a number for the sensor identifier (for your use later)
+Adafruit_TSL2591 tsl = Adafruit_TSL2591(ADAFRUIT_SENSOR_IDENTIFIER); // pass in a number for the sensor identifier (for your use later)
+
+LiquidCrystal lcd(PIN_LCD_RS, PIN_LCD_ENABLE, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
-Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2);
+Adafruit_StepperMotor *myMotor = AFMS.getStepper(MOTOR_STEPS_PER_REVOLUTION, MOTOR_PORT);
 
-const int piezoPin=46;
-const int lampCheckingSensorPin=A9;
-//int lampCheckingSensorVal=0;
-const int lampSwitchPin=25;
-int lampSwitchVal;
-const int positionMotorSensorPin=A8;
-//int positionMotorSensorVal=0;
 
-const int chipSelect=53;
+File allSpectrumFile;
 
-File dataFile;
-
-const byte ROWS = 4;
-const byte COLS = 3;
+const byte ROWS = KEYPAD_ROWS;
+const byte COLS = KEYPAD_COLS;
 char hexaKeys[ROWS][COLS] = {
-  {'1','2','3'},
-  {'4','5','6'},
-  {'7','8','9'},
-  {'*','0','#'}
+	{'1','2','3'},
+	{'4','5','6'},
+	{'7','8','9'},
+	{'*','0','#'}
 };
-byte rowPins[ROWS] = {38,37, 36, 35}; 
-byte colPins[COLS] = {34, 33, 32,};
+byte rowPins[ROWS] = {PIN_KEYPAD_ROW_0, PIN_KEYPAD_ROW_1, PIN_KEYPAD_ROW_2, PIN_KEYPAD_ROW_3};
+byte colPins[COLS] = {PIN_KEYPAD_COLS_0, PIN_KEYPAD_COLS_1, PIN_KEYPAD_COLS_2};
+//byte colPins[COLS] = {PIN_KEYPAD_COLS_0, PIN_KEYPAD_COLS_1, PIN_KEYPAD_COLS_2,};
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 char customKey;
 String keyPadString;
-int lowSpectraLimit=380;
-int highSpectraLimit=780;
-int lowGratingMotorLimit=850;
-int highGratingMotorLimit=1250;
+
 int gratingMotorSteps;
 int lambdaMin;
 int lambdaMax;
@@ -59,233 +50,333 @@ int readsVal=0;
 int sumReadsVal=0;
 long sumBackgroundReadsVal=0;
 long sumSampleReadsVal=0;
-long Abs;
 
-const int backPin=3;
-const int nextPin=4;
-const int upPin=5;
-const int downPin=6;
-const int okPin=7;
 int backVal=LOW;
 int nextVal=LOW;
 int upVal=LOW;
 int downVal=LOW;
 int okVal=LOW;
+int lampSwitchVal;
 int backgroundSensorVal;
 int readSensorVal;
-int x=0;
-//default
-void configureSensor(void){
-  //tsl.setGain(TSL2591_GAIN_LOW);      // 1x gain (bright light)
-  //tsl.setGain(TSL2591_GAIN_MED);      // 25x gain
-  //tsl.setGain(TSL2591_GAIN_HIGH);     // 428x gain
-  tsl.setGain(TSL2591_GAIN_MAX);        // 9876x (extremely low light)
- 
-  //tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);  // shortest integration time (bright light)
-  //tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
-  tsl.setTiming(TSL2591_INTEGRATIONTIME_300MS);
-  //tsl.setTiming(TSL2591_INTEGRATIONTIME_400MS);
-  //tsl.setTiming(TSL2591_INTEGRATIONTIME_500MS);
-  //tsl.setTiming(TSL2591_INTEGRATIONTIME_600MS);  // longest integration time (dim light)
- 
-  lcd.clear(); lcd.setCursor(0, 0);
-  lcd.print  ("Gain:");
-  tsl2591Gain_t gain = tsl.getGain();
-  switch(gain){
-    case TSL2591_GAIN_LOW:
-      lcd.print("1x(Low)");
-      break;
-    case TSL2591_GAIN_MED:
-      lcd.print("25x(Medium)");
-      break;
-    case TSL2591_GAIN_HIGH:
-      lcd.print("428x(High)");
-      break;
-    case TSL2591_GAIN_MAX:
-      lcd.print("9876x (Max)");
-      break;
-  }
-  lcd.setCursor(0, 1);
-  lcd.print ("Timing:");
-  lcd.print((tsl.getTiming() + 1) * 100, DEC); 
-  lcd.print("ms");
-  delay(3000);
-}
-//default
-void tslSensorChecking (void){
-  lcd.clear(); lcd.setCursor(0, 0);
-  lcd.print("TSL2591");
-  lcd.setCursor(0, 1);
-  lcd.print("Checking..."); 
-  delay(2500);
-  if (tsl.begin()){
-    lcd.clear(); lcd.setCursor(0, 0);
-    lcd.print("TSL2591 Sensor");
-    lcd.setCursor(0, 1);
-    lcd.print("OK");
-  } 
-  else{
-    printWiringError(piezoPin);
-  }
-  delay(2500);
-  configureSensor();
-  delay(3000);
-}
+int x=0;	//definire funzione...
 
-void gratingMotorZeroPoint (const int sensMotPin, const int piezoZeroPin){
-  int positionMotorSensorVal=analogRead(sensMotPin);
-  while(positionMotorSensorVal<=470){
-    positionMotorSensorVal=analogRead(sensMotPin);
-    myMotor->step(1, BACKWARD, SINGLE); 
-  }
-  myMotor->step(1050, FORWARD, SINGLE); 
-  tone(piezoZeroPin, 400, 500);
-}
-//default
-void gratingMotorChecking (const int sensMotCheckPin, const int piezoCheckPin){
-  lcd.clear(); lcd.setCursor(0, 0);
-  lcd.print("Grating Motor");
-  lcd.setCursor(0, 1);
-  lcd.print("Positioning...");
-  gratingMotorZeroPoint(sensMotCheckPin, piezoCheckPin);
-  lcd.setCursor(0, 1);
-  lcd.print("Motor Dgr.= 0'");
-  delay(3000);
-}
-
-void SDCardChecking (const int chipSel){
-  lcd.clear(); lcd.setCursor(0, 0);
-  lcd.print("Initializing");
-  lcd.setCursor(0, 1);
-  lcd.print("SD card...");
-  delay(2000);
-  if (!SD.begin(chipSel)) {
-    printWiringError(piezoPin);
-    delay(2500);
-    return;
-  }
-    lcd.clear(); lcd.setCursor(0, 0);
-    lcd.print("Initialization");
-    lcd.setCursor(0, 1);
-    lcd.print("DONE!!!");
-    delay(3000);
-}
-
-void printWiringError (const int allarmPin){
-  lcd.clear(); lcd.setCursor(0, 0);
-  lcd.print("OH-oh..");
-  tone(allarmPin, 400, 1000);
-  delay(500);
-  tone(allarmPin, 400, 1000);
-  lcd.setCursor(0, 1);
-  lcd.print("check wiring?");
-}
-
-void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState, const int piezoLCPin){
-  int lampCheckingSensorVal=0;
-  int lampChecingkArray[3]={0,0,0};
-  lcd.clear(); lcd.setCursor(0, 0);
-  lcd.print("Lamp");
-  lcd.setCursor(0, 1);
-  lcd.print("Checking");
-  delay(2500);
-  lampCheckingSensorVal=analogRead(lampSensPin);
-  lcd.print(".");
-  if(lampCheckingSensorVal>500){
-    lampChecingkArray[0]=1;
-  }
-  (*lampState)=LOW;
-  digitalWrite(lampStatePin, (*lampState));
-  delay(1000);
-  lampCheckingSensorVal=analogRead(lampSensPin);
-  lcd.print(".");
-  if(lampCheckingSensorVal<500){
-    lampChecingkArray[1]=0;
-  }
-  (*lampState)=HIGH;
-  digitalWrite(lampStatePin, (*lampState));
-  delay(1000);
-  lampCheckingSensorVal=analogRead(lampSensPin);
-  lcd.print(".");
-  if(lampCheckingSensorVal>500){
-    lampChecingkArray[2]=1;
-  }
-  delay(1000);
-  /*controllare correttezza sintassi
-   */
-  if(lampChecingkArray[0]&&(!lampChecingkArray[1])&&lampChecingkArray[2]){
-    lcd.clear(); lcd.setCursor(0, 0);
-    lcd.print("Lamp ");
-    lcd.setCursor(0, 1);
-    lcd.print("is OK!!");
-  }
-  else{
-    printWiringError(piezoLCPin);
-  }
-  delay(2500);
-}
+#include "FUNCTIONS.h"
 
 void setup(void){
-  Serial.begin(9600);
-  AFMS.begin();
-  myMotor->setSpeed(50);  //rpm
-  pinMode(okPin, INPUT);
-  pinMode(backPin, INPUT);
-  pinMode(nextPin, INPUT);
-  pinMode(upPin, INPUT);
-  pinMode(downPin, INPUT);
-  pinMode(lampCheckingSensorPin, INPUT);
-  pinMode(lampSwitchPin, OUTPUT);
-  digitalWrite(lampSwitchPin, HIGH);
-  lcd.begin(16, 2);
-  delay(1000);
-  lcd.print("Spe.Ar. Project");
-  lcd.setCursor(0, 1);
-  lcd.print("V 1.0  SW 10");
-  tone(piezoPin, 500, 100);
-  delay(100);
-  tone(piezoPin, 300, 200);
-  delay(100);
-  tone(piezoPin, 500, 400);
-  delay(4300);
-  lcd.clear(); lcd.setCursor(0, 0);
-  lcd.print("Starting");
-  lcd.setCursor(0, 1);
-  lcd.print("Instrument...");
-  delay(2500);
-  
-  lampChecking(lampCheckingSensorPin, lampSwitchPin, &lampSwitchVal, piezoPin);
-  tslSensorChecking();
-  gratingMotorChecking(positionMotorSensorPin, piezoPin);
-  SDCardChecking(chipSelect);
-  
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Instrument");
-  lcd.setCursor(0, 1);
-  lcd.print("is Ready!!!!");
-  tone(piezoPin, 600, 200);
-  delay(200);
-  tone(piezoPin, 600, 200);
-  delay(100);
-  tone(piezoPin, 900, 400);
-  delay(1000);
-  lcd.noDisplay();
-  delay(500);
-  lcd.display();
-  delay(2000);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Press 'OK'");
-  lcd.setCursor(0, 1);
-  lcd.print("to Start...");
-  while(okVal==LOW){
-    okVal=digitalRead(okPin);
-  }
-  okVal=LOW;
+	Serial.begin(SERIAL_BAUDRATE);
+	AFMS.begin();
+	myMotor->setSpeed(MOTOR_SPEED_RPM);
+	pinMode(PIN_BUTTON_OK, 				INPUT);
+	pinMode(PIN_BUTTON_BACK, 			INPUT);
+	pinMode(PIN_BUTTON_NEXT, 			INPUT);
+	pinMode(PIN_BUTTON_UP, 				INPUT);
+	pinMode(PIN_BUTTON_DOWN, 			INPUT);
+	pinMode(PIN_LAMP_CHECKINGSENSOR, 	INPUT);
+	pinMode(PIN_LAMP_SWITCH, 			OUTPUT);
+	digitalWrite(PIN_LAMP_SWITCH, 		HIGH);
+	lcd.begin(LCD_COLS, LCD_ROWS);
+	//delay(1000);
+	//Il primo setCursor in 0,0 è da verificare se funziona, attualmente sto scrivendo senza testare 2020/01/31
+	lcd.setCursor(0, 0); lcd.print("Spe.Ar. Project");
+	lcd.setCursor(0, 1); lcd.print("V "); lcd.print(MODEL_VERSION); lcd.print(" SW "); lcd.print(FIRMWARE_VERSION);
+	//lcd.setCursor(0, 1); lcd.print("V 1.0 SW 10");
+	//lcd.setCursor(0, 1); lcd.print("V " + MODEL_VERSION + "SW" + FIRMWARE_VERSION);
+	tone(PIN_PIEZO, 500, 100); delay(100);
+	tone(PIN_PIEZO, 300, 200); delay(100);
+	tone(PIN_PIEZO, 500, 400); delay(4300);
+	lcd.clear();
+	lcd.setCursor(0, 0); lcd.print("Starting");
+	lcd.setCursor(0, 1); lcd.print("Instrument...");
+	//delay(2500);
+	
+	lampChecking(PIN_LAMP_CHECKINGSENSOR, PIN_LAMP_SWITCH, &lampSwitchVal, PIN_PIEZO);
+	tslSensorChecking();
+	gratingMotorChecking(PIN_MOTOR_POSITIONSENSOR, PIN_PIEZO);
+	SDCardChecking(CHIPSELECT);
+	
+	lcd.clear();
+	lcd.setCursor(0, 0); lcd.print("Instrument");
+	lcd.setCursor(0, 1); lcd.print("is Ready!!!!");
+	tone(PIN_PIEZO, 600, 200); delay(200);
+	tone(PIN_PIEZO, 600, 200); delay(100);
+	tone(PIN_PIEZO, 900, 400); delay(1000);
+	lcd.noDisplay();	delay(500);
+	lcd.display();		delay(2000);
+	lcd.clear();
+	lcd.setCursor(0, 0); lcd.print("Press 'OK'");
+	lcd.setCursor(0, 1); lcd.print("to Start...");
+	while(okVal==LOW){
+		okVal=digitalRead(PIN_BUTTON_OK);
+	}
+	okVal=LOW;
 }
 
 void loop(void){
-  
+	lcd.clear();
+	lcd.setCursor(0, 0); lcd.print("Analysis:");
+	lcd.setCursor(0, 1); lcd.print(" 1  2  3");
+	/*MODES:
+		1	-	SIMPLE READ
+		2	-	ALL SPECTRUM
+		3	-	CONCANALYSIS
+	*/
+	customKey=0;
+	while(customKey==0){ 
+		customKey = customKeypad.getKey();
+		delay(100);
+	}
+	switch(customKey){
+		case(ANALYSISMODE_SIMPLEREAD):{
+			lcd.clear();
+			lcd.setCursor(0, 0); lcd.print("Simple Read");
+			lcd.setCursor(0, 1); lcd.print("selected?");
+			while((okVal==LOW) && (backVal==LOW)){
+				okVal=digitalRead(PIN_BUTTON_OK);
+				backVal=digitalRead(PIN_BUTTON_BACK);
+			}
+			if(okVal==HIGH){
+				okVal=LOW;
+				delay(100);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Lambda (nm): ");
+				lcd.setCursor(0, 1); lcd.print("Set Val: ");
+				keyPadString="";
+				while(okVal==LOW){
+					customKey=0;
+					customKey = customKeypad.getKey();
+					delay(100);
+					if(customKey){
+						keyPadString=keyPadString+customKey;
+						lcd.setCursor(0, 1); lcd.print("Set Val:	" + keyPadString);
+					}
+					okVal=digitalRead(PIN_BUTTON_OK);
+				}
+				lambdaSelected=keyPadString.toInt();
+				okVal=LOW;
+				delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Lambda: ");
+				lcd.setCursor(0, 1);
+				lambdaCorrected=constrain(lambdaSelected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
+				delay(200);
+				gratingMotorSteps=map(lambdaCorrected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH, MOTOR_GRATINGLIMIT_HIGH, MOTOR_GRATINGLIMIT_LOW);
+				lcd.print(lambdaCorrected); lcd.print("nm");
+				delay(1000);
+				gratingMotorChecking(PIN_MOTOR_POSITIONSENSOR, PIN_PIEZO);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Set Replicates");
+				lcd.setCursor(0, 1); lcd.print("n: ");
+				keyPadString="";
+				while(okVal==LOW){
+					customKey=0;
+					customKey = customKeypad.getKey();
+					delay(100);
+					if(customKey){
+						keyPadString=keyPadString+customKey;
+						lcd.setCursor(0, 1); lcd.print("n:  " + keyPadString);
+					}
+					okVal=digitalRead(PIN_BUTTON_OK);
+				}
+				okVal=LOW;
+				nReplicates=keyPadString.toInt();
+				if(nReplicates<MIN_REPLICATES){
+					nReplicates=MIN_REPLICATES;
+				}
+				//delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Replicates:  ");
+				lcd.setCursor(0, 1); lcd.print(nReplicates);
+				delay(3000);
+				myMotor->step(gratingMotorSteps, FORWARD, SINGLE); 
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Press 'OK' to");
+				lcd.setCursor(0, 1); lcd.print("AutoZero");
+				while(okVal==LOW){
+					okVal=digitalRead(PIN_BUTTON_OK);
+				}
+				okVal=LOW;
+				delay(1000);
+				nReads=0;
+				sumBackgroundReadsVal=0;
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Reading...");
+				delay(1000);
+				//for(nReads; nReads<((nReplicates) + MIN_REPLICATES); nReads++){
+				for(nReads; nReads<nReplicates; nReads++){
+					simpleRead();
+					sumBackgroundReadsVal+=readsVal;
+				}
+				nReads=0;
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Load Sample!");
+				lcd.setCursor(0, 1); lcd.print("'OK' to read...");
+				delay(1000);
+				while(backVal==LOW){	
+					okVal=digitalRead(PIN_BUTTON_OK);
+					backVal=digitalRead(PIN_BUTTON_BACK);
+					if(okVal==HIGH){
+						okVal=LOW;
+						lcd.clear();
+						lcd.setCursor(0, 0); lcd.print("Reading...");
+						//delay(1000);
+						nReads=0;
+						sumSampleReadsVal=0;
+						for(nReads; nReads<nReplicates; nReads++){
+							simpleRead();
+							sumSampleReadsVal+=readsVal;
+						}
+						lcd.clear();
+						lcd.setCursor(0, 0); lcd.print("Abs Sample:");
+						Serial.print((sumSampleReadsVal)/(nReplicates));
+						Serial.print("///");
+						//Serial.println((sumBackgroundReadsVal)/((nReplicates)+MIN_REPLICATES));
+						Serial.println((sumBackgroundReadsVal)/(nReplicates));
+						Serial.print(nReplicates);
+						Serial.print("///");
+						//Serial.println(((nReplicates)+MIN_REPLICATES));
+						Serial.println(nReplicates);
+						//long iSource=((sumBackgroundReadsVal)/((nReplicates)+MIN_REPLICATES));
+						long iSource=((sumBackgroundReadsVal)/(nReplicates));
+						long iSample=((sumSampleReadsVal)/(nReplicates));
+						long trasmittance=(1000*((iSample)/(iSource)));
+						long absorbance=log10(1/((iSample)/(iSource)))*1000;
+						Serial.print(iSource); Serial.print("-"); Serial.print(iSample); Serial.print("-"); Serial.print(trasmittance); Serial.print("-"); Serial.println(absorbance);
+						//Abs=(log10(1/((sumSampleReadsVal)/(nReplicates)/(sumBackgroundReadsVal)/((nReplicates)+MIN_REPLICATES))))*1000;
+						long Abs=(log10(1/((sumSampleReadsVal)/(nReplicates)/(sumBackgroundReadsVal)/(nReplicates))))*1000;
+						Serial.println(Abs);
+						lcd.setCursor(0, 1); lcd.print(Abs);
+					}
+					okVal=LOW;
+				}
+				backVal=LOW;
+			} 
+			break;
+		}
+		case(ANALYSISMODE_ALLSPECTRUM):{
+			lcd.clear();
+			lcd.setCursor(0, 0); lcd.print("All Spectrum");
+			lcd.setCursor(0, 1); lcd.print("selected?");
+			while((okVal==LOW) && (backVal==LOW)){
+				okVal=digitalRead(PIN_BUTTON_OK);
+				backVal=digitalRead(PIN_BUTTON_BACK);
+			}
+			if(okVal==HIGH){
+				okVal=LOW;
+				delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Spectrum range");
+				lcd.setCursor(0, 1); lcd.print("Set MIN:  ");
+				keyPadString="";
+				while(okVal==LOW){
+					customKey=0;
+					customKey = customKeypad.getKey();
+					delay(100);
+					if(customKey){
+						keyPadString=keyPadString+customKey;
+						lcd.setCursor(0, 1); lcd.print("Set MIN:  " + keyPadString);
+					}
+					okVal=digitalRead(PIN_BUTTON_OK);
+				}
+				lambdaSelected=keyPadString.toInt();
+				lambdaMin=constrain(lambdaSelected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
+				okVal=LOW;
+				delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Spectrum range");
+				lcd.setCursor(0, 1); lcd.print("Set MAX:  ");
+				keyPadString="";
+				while(okVal==LOW){
+					customKey=0;
+					customKey = customKeypad.getKey();
+					delay(100);
+					if(customKey){
+						keyPadString=keyPadString+customKey;
+						lcd.setCursor(0, 1); lcd.print("Set MAX:  " + keyPadString);
+					}
+					okVal=digitalRead(PIN_BUTTON_OK);
+				}
+				lambdaSelected=keyPadString.toInt();
+				lambdaMax=constrain(lambdaSelected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
+				okVal=LOW;
+				delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("MIN:  "); lcd.print(lambdaMin);
+				lcd.setCursor(0, 1); lcd.print("MAX:  "); lcd.print(lambdaMax);
+				delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Grating Motor");
+				lcd.setCursor(0, 1); lcd.print("Zero setting...");
+				gratingMotorZeroPoint(PIN_MOTOR_POSITIONSENSOR, PIN_PIEZO);
+				delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Set Replicates");
+				lcd.setCursor(0, 1); lcd.print("n:  ");
+				keyPadString="";
+				while(okVal==LOW){
+					customKey=0;
+					customKey = customKeypad.getKey();
+					delay(100);
+					if(customKey){
+						keyPadString=keyPadString+customKey;
+						lcd.setCursor(0, 1); lcd.print("n:  " + keyPadString);
+					}
+					okVal=digitalRead(PIN_BUTTON_OK);
+				}
+				nReplicates=keyPadString.toInt();
+				okVal=LOW;
+				delay(1000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Replicates:  ");
+				lcd.setCursor(0, 1); lcd.print(nReplicates);
+				delay(3000);
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Press 'OK' to");
+				lcd.setCursor(0, 1); lcd.print("AutoZero");
+				while(okVal==LOW){
+					okVal=digitalRead(PIN_BUTTON_OK);
+				}
+				okVal=LOW;
+				backgroundSensor();
+				lcd.clear();
+				lcd.setCursor(0, 0); lcd.print("Load Sample!");
+				lcd.setCursor(0, 1); lcd.print("'OK' to read...");
+				x=0;
+				delay(1000);
+				while(backVal==LOW){
+					okVal=digitalRead(PIN_BUTTON_OK);
+					backVal=digitalRead(PIN_BUTTON_BACK);
+					if(okVal==HIGH){
+						okVal=LOW;
+						x++;
+						lcd.clear();
+						lcd.setCursor(0, 0); lcd.print("Reading...");
+						delay(1000);
+						//	>> ======================= TODO ======================= << 
+						lcd.clear();
+						lcd.setCursor(0, 0); lcd.print("Spectrum " + x);
+						lcd.setCursor(0, 1); lcd.print("Saved!");
+					}
+				}
+				backVal=LOW;
+				break;				
+			}
+		}
+		case(ANALYSISMODE_CONCANALYSIS):{
+			lcd.clear();
+			lcd.setCursor(0, 0); lcd.print("Conc. Analysis");
+			lcd.setCursor(0, 1); lcd.print("selected?");
+			while((okVal==LOW) && (backVal==LOW)){
+				okVal=digitalRead(PIN_BUTTON_OK);
+				backVal=digitalRead(PIN_BUTTON_BACK);
+			}
+			if(okVal==HIGH){
+				okVal=LOW;
+				//	>> ======================= TODO ======================= << 
+			}
+			okVal=LOW;
+			break;
+		}
+		
+	}
 }
-
