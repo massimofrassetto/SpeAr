@@ -49,7 +49,7 @@ void configureSensor(void){
 			break;
 	}
 	lcd.setCursor(0, 1); lcd.print("Timing:"); lcd.print((tsl.getTiming() + 1) * 100, DEC); lcd.print("ms");
-	delay(3000);
+	delay(500);
 }
 
 void printWiringError (const int allarmPin){
@@ -64,7 +64,7 @@ void tslSensorChecking (void){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("TSL2591");
 	lcd.setCursor(0, 1); lcd.print("Checking..."); 
-	delay(2500);
+	delay(1000);
 	if (tsl.begin()){
 		lcd.clear();
 		lcd.setCursor(0, 0); lcd.print("TSL2591 Sensor");
@@ -73,28 +73,30 @@ void tslSensorChecking (void){
 	else{
 		printWiringError(PIN_PIEZO);
 	}
-	delay(2500);
+	delay(500);
 	configureSensor();
-	delay(3000);
+	delay(500);
 }
 
 void gratingMotorZeroPoint (const int sensMotPin, const int piezoPin){
+	lcd.clear();
+	lcd.setCursor(0, 0); lcd.print("Grating Motor");
+	lcd.setCursor(0, 1); lcd.print("Homing...");
 	int positionMotorSensorVal=analogRead(sensMotPin);
 	while(positionMotorSensorVal<=MOTOR_POSITIONSENSOR_THRESHOLD){
 		positionMotorSensorVal=analogRead(sensMotPin);
 		myMotor->step(1, BACKWARD, SINGLE); 
 	}
-	myMotor->step(1050, FORWARD, SINGLE); 
+	myMotor->step(1050, FORWARD, SINGLE); 													//COSTANTE da configurare!!!!!!!!!!!!!!!!
 	tone(piezoPin, 400, 500);
 }
 
 void gratingMotorChecking (const int sensMotCheckPin, const int piezoCheckPin){
-	lcd.clear();
-	lcd.setCursor(0, 0); lcd.print("Grating Motor");
-	lcd.setCursor(0, 1); lcd.print("Positioning...");
 	gratingMotorZeroPoint(sensMotCheckPin, piezoCheckPin);
-	lcd.setCursor(0, 1); lcd.print("Motor Dgr.= 0'");
-	delay(3000);
+	lcd.clear();
+	lcd.setCursor(0, 0); lcd.print("Motor Setted!");
+	lcd.setCursor(0, 1); lcd.print("Dgr.= 0'");
+	delay(1000);
 }
 
 void SDCardChecking (const int chipSel){
@@ -119,7 +121,7 @@ void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Lamp");
 	lcd.setCursor(0, 1); lcd.print("Checking");
-	delay(2500);
+	//delay(2500);
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	lcd.print(".");
 	if(lampCheckingSensorVal>LAMP_CHECKINGSENSOR_THRESHOLD){

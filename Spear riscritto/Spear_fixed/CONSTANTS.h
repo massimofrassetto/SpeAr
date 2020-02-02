@@ -2,18 +2,18 @@
 #define COSTANTS.h
 
 #define MODEL_VERSION						1.0
-#define FIRMWARE_VERSION					11
+#define FIRMWARE_VERSION					12
 
 #define SERIAL_BAUDRATE						115200
+
+#define LCD_COLS							16
+#define LCD_ROWS							2
 #define PIN_LCD_RS 							8
 #define PIN_LCD_ENABLE 						9
 #define PIN_LCD_D4 							10
 #define PIN_LCD_D5 							11
 #define PIN_LCD_D6 							12
 #define PIN_LCD_D7 							13
-
-#define LCD_COLS							16
-#define LCD_ROWS							2
 
 #define ADAFRUIT_SENSOR_IDENTIFIER 			2519
 
@@ -37,8 +37,8 @@
 
 #define PIN_LAMP_SWITCH 					25
 #define PIN_LAMP_CHECKINGSENSOR 			A9
-#define LAMP_CHECKINGSENSOR_THRESHOLD 		500				//ms
-#define LAMP_CHECKING_TIMEBREAK 			1000			//ms
+#define LAMP_CHECKINGSENSOR_THRESHOLD 		460
+#define LAMP_CHECKING_TIMEBREAK 			250			//ms
 
 #define PIN_MOTOR_POSITIONSENSOR 			A8
 #define MOTOR_POSITIONSENSOR_THRESHOLD		470
@@ -51,14 +51,15 @@
 
 #define CHIPSELECT 							53
 
-#define ANALYSISMODE_SIMPLEREAD				'1'
-#define ANALYSISMODE_ALLSPECTRUM			'2'
-#define ANALYSISMODE_CONCANALYSIS			'3'
+#define ANALYSISMODE_NUMBER 				3
+
+#define ANALYSISMODE_SIMPLEREAD				0
+#define ANALYSISMODE_ALLSPECTRUM			1
+#define ANALYSISMODE_CONCANALYSIS			2
 
 #define SPECTRALIMIT_LOW					380
 #define SPECTRALIMIT_HIGH					780
 #define MIN_REPLICATES						5
 
-#define ALLSPECTRUM_FILENAME				"allspect.txt"
 
 #endif
