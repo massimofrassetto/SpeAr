@@ -1,3 +1,5 @@
+/* FILE CONTENENTE TUTTE LE FUNZIONI */
+
 #ifndef FUNCTIONS.h
 #define FUNCTIONS.h
 
@@ -7,10 +9,10 @@
 
 void configureSensor(void);
 void printWiringError(const int allarmPin);
-void gratingMotorZeroPoint(const int sensMotPin, const int piezoPin);
-void gratingMotorChecking(const int sensMotCheckPin, const int piezoCheckPin);
+void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin);
+void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
 void SDCardChecking(const int chipSel);
-void lampChecking(const int lampSensPin, const int lampStatePin, int* lampState, const int piezoLCPin);
+void lampChecking(const int lampSensPin, const int lampStatePin, int* lampState, const int buzzerLCPin);
 int simpleRead(void);
 void backgroundSensor(void);
 
@@ -18,8 +20,14 @@ void backgroundSensor(void);
 // ======================================= FUNZIONI ========================================
 // =========================================================================================
 
+/*
+	Funzione per decidere quale sensibilità ed il tempo di integrazione che il mio sensore deve avere.
+	Ora il valore è scolpito in fase di compilazione.
+	In un futuro bisogna informarsi per capire se è possibile modificare questi dati
+	mentre lo spettrofotometro è acceso
+*/
 void configureSensor(void){
-	//tsl.setGain(TSL2591_GAIN_LOW);			// 1x gain (bright light)
+		//tsl.setGain(TSL2591_GAIN_LOW);			// 1x gain (bright light)
 	//tsl.setGain(TSL2591_GAIN_MED);			// 25x gain
 	//tsl.setGain(TSL2591_GAIN_HIGH);		 // 428x gain
 	tsl.setGain(TSL2591_GAIN_MAX);				// 9876x (extremely low light)
@@ -52,6 +60,9 @@ void configureSensor(void){
 	delay(500);
 }
 
+/*
+	In caso di errori durante il check questa è la funzione per avvisare l'utente che qualcosa non va.
+*/
 void printWiringError (const int allarmPin){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("OH-oh..");
@@ -60,6 +71,9 @@ void printWiringError (const int allarmPin){
 	lcd.setCursor(0, 1); lcd.print("check wiring?");
 }
 
+/*
+	Verifico che la comunicazione con il sensore tsl sia funzionante
+*/
 void tslSensorChecking (void){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("TSL2591");
@@ -71,14 +85,17 @@ void tslSensorChecking (void){
 		lcd.setCursor(0, 1); lcd.print("OK");
 	} 
 	else{
-		printWiringError(PIN_PIEZO);
+		printWiringError(PIN_BUZZER);
 	}
 	delay(500);
 	configureSensor();
 	delay(500);
 }
 
-void gratingMotorZeroPoint (const int sensMotPin, const int piezoPin){
+/*
+	Azzero la posizione della griglia di rifrazione
+*/
+void gratingMotorZeroPoint (const int sensMotPin, const int buzzerPin){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Grating Motor");
 	lcd.setCursor(0, 1); lcd.print("Homing...");
@@ -87,25 +104,31 @@ void gratingMotorZeroPoint (const int sensMotPin, const int piezoPin){
 		positionMotorSensorVal=analogRead(sensMotPin);
 		myMotor->step(1, BACKWARD, SINGLE); 
 	}
-	myMotor->step(1050, FORWARD, SINGLE); 													//COSTANTE da configurare!!!!!!!!!!!!!!!!
-	tone(piezoPin, 400, 500);
+	myMotor->step(MOTOR_STEPS_MACHINEZERO, FORWARD, SINGLE);
+	tone(buzzerPin, 400, 500);
 }
 
-void gratingMotorChecking (const int sensMotCheckPin, const int piezoCheckPin){
-	gratingMotorZeroPoint(sensMotCheckPin, piezoCheckPin);
+/*
+	funzione inutile se non per scrivere sullo schermo LCD. DA INCORPORARE CON QUELLA SOPRA
+*/
+void gratingMotorChecking (const int sensMotCheckPin, const int buzzerCheckPin){
+	gratingMotorZeroPoint(sensMotCheckPin, buzzerCheckPin);
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Motor Setted!");
 	lcd.setCursor(0, 1); lcd.print("Dgr.= 0'");
 	delay(500);
 }
 
+/*
+	verifico la scheda SD
+*/
 void SDCardChecking (const int chipSel){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Initializing");
 	lcd.setCursor(0, 1); lcd.print("SD card...");
 	delay(500);
 	if (!SD.begin(chipSel)) {
-		printWiringError(PIN_PIEZO);
+		printWiringError(PIN_BUZZER);
 		delay(2500);
 		return;
 	}
@@ -115,7 +138,11 @@ void SDCardChecking (const int chipSel){
 	delay(500);
 }
 
-void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState, const int piezoLCPin){
+/*
+	verifico che la lampada sia in funzione e che il relè cambi di stato.
+	Bisognerebbe gestire anche il punto in viene generato l'errore visto che utilizzo un array
+*/
+void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState, const int buzzerLCPin){
 	int lampCheckingSensorVal=0;
 	int lampChecingkArray[3]={0,0,0};
 	lcd.clear();
@@ -144,19 +171,22 @@ void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState
 		lampChecingkArray[2]=1;
 	}
 	delay(LAMP_CHECKING_TIMEBREAK);
-	/*controllare correttezza sintassi
-	 */
 	if(lampChecingkArray[0]&&(!lampChecingkArray[1])&&lampChecingkArray[2]){
 		lcd.clear();
 		lcd.setCursor(0, 0); lcd.print("Lamp ");
 		lcd.setCursor(0, 1); lcd.print("is OK!!");
 	}
 	else{
-		printWiringError(piezoLCPin);
+		printWiringError(buzzerLCPin);
 	}
 	delay(2500);
 }
 
+/*
+	Punzione per eseguire una semplicissima lettura.
+	La tengo per il momento ma in realtà è totalmente inuitle in quanto talmente semplice.
+	Al più bisogna vedere come gestire il campo di lettura in base alle impostazioni di default
+*/
 int simpleRead(void){
 	// Simple data read example. Just read the infrared, fullspecrtrum diode 
 	// or 'visible' (difference between the two) channels.
@@ -166,9 +196,12 @@ int simpleRead(void){
 	//uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
 
 	Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
-	readsVal=x;
+	m_readsVal=x;
 }
 
+/*
+	Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
+*/
 void backgroundSensor (void){
 	delay(1000);
 	lcd.clear();
