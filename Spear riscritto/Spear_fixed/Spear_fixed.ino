@@ -1,8 +1,8 @@
-/* Da usar in futuro:
-	https://github.com/cubiwan/LinearRegressino
-*/
+/* PROGRAMMA PRINCIPALE */
 
 #define DEBUG
+
+#include <ArduinoLog.h>
 
 #include <LiquidCrystal.h>
 
@@ -40,41 +40,46 @@ char hexaKeys[ROWS][COLS] = {
 byte rowPins[ROWS] = {PIN_KEYPAD_ROW_0, PIN_KEYPAD_ROW_1, PIN_KEYPAD_ROW_2, PIN_KEYPAD_ROW_3};
 byte colPins[COLS] = {PIN_KEYPAD_COLS_0, PIN_KEYPAD_COLS_1, PIN_KEYPAD_COLS_2};
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
-char customKey;
-String keyPadString;
+char m_customKey;
+String m_keyPadString;
 
-String analysisModeLcdString[ANALYSISMODE_NUMBER]={ANALYSISMODE_LCDSTRING_MOD_1, ANALYSISMODE_LCDSTRING_MOD_2, ANALYSISMODE_LCDSTRING_MOD_3};
-bool refreshScreen=true;
+String m_analysisModeLcdString[ANALYSISMODE_NUMBER]={ANALYSISMODE_LCDSTRING_MOD_1, ANALYSISMODE_LCDSTRING_MOD_2, ANALYSISMODE_LCDSTRING_MOD_3};
+bool m_refreshScreen=true;
 
-int gratingMotorFutureSteps;
-int gratingMotorCurrentSteps;
-int lambdaMin;
-int lambdaMax;
-int lambdaSelected;
-int lambdaCorrected;
-float lambdaCaptured;
-int nReplicates;
-int nReads;
-int readsVal=0;
-int sumReadsVal=0;
-float sumBackgroundReadsVal=0;
-float sumSampleReadsVal=0;
+int m_gratingMotorFutureSteps;
+int m_gratingMotorCurrentSteps;
+int m_lambdaMin;
+int m_lambdaMax;
+int m_lambdaRequested;
+int m_lambdaCorrected;
+float m_lambdaCaptured;
+int m_nReadsRequested;
+int m_nReadsCorrected;
+int m_nReadsCaptured;
+int m_readsVal=0;
+int m_sumReadsVal=0;
+float m_sumBackgroundReadsVal=0;
+float m_sumSampleReadsVal=0;
 
-int backVal=LOW;
-int nextVal=LOW;
-int upVal=LOW;
-int downVal=LOW;
-int okVal=LOW;
-int lampSwitchVal;
-int backgroundSensorVal;
-int readSensorVal;
-int x=0;	//definire funzione...
-int indexAnalysisMode=0;
+int m_backVal=LOW;
+int m_nextVal=LOW;
+int m_upVal=LOW;
+int m_downVal=LOW;
+int m_okVal=LOW;
+
+int m_indexAnalysisMode=0;
+int m_lampSwitchVal;
+int m_backgroundSensorVal;
+int m_readSensorVal;
+int m_allSpectrumScanID=0;
 
 #include "FUNCTIONS.h"
 
 void setup(void){
 	Serial.begin(SERIAL_BAUDRATE);
+	while (!Serial) {
+		; // wait for serial port to connect. Needed for native USB port only
+	}
 	#ifdef DEBUG
 		Serial.println("=====================================");
 		Serial.println("========== STARTING SYSTEM ==========");
@@ -108,9 +113,9 @@ void setup(void){
 	#ifdef DEBUG
 		Serial.println(">> Motor Inizializated;");
 	#endif
-	tone(PIN_PIEZO, 500, 100); delay(100);
-	tone(PIN_PIEZO, 300, 200); delay(100);
-	tone(PIN_PIEZO, 500, 400); delay(4300);
+	tone(PIN_BUZZER, 500, 100); delay(100);
+	tone(PIN_BUZZER, 300, 200); delay(100);
+	tone(PIN_BUZZER, 500, 400); delay(4300);
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Starting");
 	lcd.setCursor(0, 1); lcd.print("Instrument...");
@@ -120,7 +125,7 @@ void setup(void){
 	#ifdef DEBUG
 		Serial.println(">> Checking Lamp...\t\t");
 	#endif
-	lampChecking(PIN_LAMP_CHECKINGSENSOR, PIN_LAMP_SWITCH, &lampSwitchVal, PIN_PIEZO);
+	lampChecking(PIN_LAMP_CHECKINGSENSOR, PIN_LAMP_SWITCH, &m_lampSwitchVal, PIN_BUZZER);
 	#ifdef DEBUG
 		Serial.println(">> Checking TSL Sensor...\t");
 	#endif
@@ -132,27 +137,27 @@ void setup(void){
 	#ifdef DEBUG
 		Serial.println(">> Homing Grating...\t\t");
 	#endif
-	gratingMotorChecking(PIN_MOTOR_POSITIONSENSOR, PIN_PIEZO);
-	gratingMotorCurrentSteps=0;
+	gratingMotorChecking(PIN_MOTOR_POSITIONSENSOR, PIN_BUZZER);
+	m_gratingMotorCurrentSteps=0;
 	#ifdef DEBUG
 		Serial.println("======= Initialization COMPLETED =======");
-		Serial.print("================ "); Serial.print(millis()/1000); Serial.println("s =================");
+		Serial.print("================ "); Serial.print(millis()/1000.0); Serial.println("s =================");
 	#endif
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Instrument");
 	lcd.setCursor(0, 1); lcd.print("is Ready!!!!");
-	tone(PIN_PIEZO, 600, 200); delay(200);
-	tone(PIN_PIEZO, 600, 200); delay(100);
-	tone(PIN_PIEZO, 900, 400); delay(1000);
+	tone(PIN_BUZZER, 600, 200); delay(200);
+	tone(PIN_BUZZER, 600, 200); delay(100);
+	tone(PIN_BUZZER, 900, 400); delay(1000);
 	lcd.noDisplay();	delay(500);
 	lcd.display();		delay(2000);
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Press 'OK'");
 	lcd.setCursor(0, 1); lcd.print("to Start...");
-	while(!okVal){
-		okVal=digitalRead(PIN_BUTTON_OK);
+	while(!m_okVal){
+		m_okVal=digitalRead(PIN_BUTTON_OK);
 	}
-	okVal=LOW;
+	m_okVal=LOW;
 	#ifdef DEBUG
 		Serial.println(">> Entering Selection Mode Menu");
 	#endif
@@ -160,8 +165,8 @@ void setup(void){
 }
 
 void loop(void){
-	customKey=0;
-	if(refreshScreen){
+	m_customKey=0;
+	if(m_refreshScreen){
 		lcd.clear();
 		lcd.setCursor(0, 0); lcd.print("Sel. Analysis:");
 	}
@@ -170,60 +175,60 @@ void loop(void){
 		2	-	ALL SPECTRUM
 		3	-	CONCANALYSIS
 	*/
-	while(!okVal && !backVal){
-		okVal	=digitalRead(PIN_BUTTON_OK);
-		backVal	=digitalRead(PIN_BUTTON_BACK);
-		upVal	=digitalRead(PIN_BUTTON_UP);
-		downVal	=digitalRead(PIN_BUTTON_DOWN);
-		if(!upVal&&downVal){
-			if(indexAnalysisMode>=2){
-				indexAnalysisMode=0;
+	while(!m_okVal && !m_backVal){
+		m_okVal	=digitalRead(PIN_BUTTON_OK);
+		m_backVal	=digitalRead(PIN_BUTTON_BACK);
+		m_upVal	=digitalRead(PIN_BUTTON_UP);
+		m_downVal	=digitalRead(PIN_BUTTON_DOWN);
+		if(!m_upVal&&m_downVal){
+			if(m_indexAnalysisMode>=2){
+				m_indexAnalysisMode=0;
 			}
 			else{
-				indexAnalysisMode++;
+				m_indexAnalysisMode++;
 			}
-			while(downVal){
-				downVal=digitalRead(PIN_BUTTON_DOWN);
+			while(m_downVal){
+				m_downVal=digitalRead(PIN_BUTTON_DOWN);
 			}
-			refreshScreen=true;
+			m_refreshScreen=true;
 		}
-		else if(upVal&&!downVal){
-			if(indexAnalysisMode<=0){
-				indexAnalysisMode=2;
+		else if(m_upVal&&!m_downVal){
+			if(m_indexAnalysisMode<=0){
+				m_indexAnalysisMode=2;
 			}
 			else{
-				indexAnalysisMode--;
+				m_indexAnalysisMode--;
 			}
-			while(upVal){
-				upVal=digitalRead(PIN_BUTTON_UP);
+			while(m_upVal){
+				m_upVal=digitalRead(PIN_BUTTON_UP);
 			}
-			refreshScreen=true;
+			m_refreshScreen=true;
 		}
-		if(refreshScreen){
+		if(m_refreshScreen){
 			lcd.setCursor(0, 1); lcd.print("                ");
-			lcd.setCursor(0, 1); lcd.print(String(indexAnalysisMode+1) + "-" + analysisModeLcdString[indexAnalysisMode]);
-			refreshScreen=false;
+			lcd.setCursor(0, 1); lcd.print(String(m_indexAnalysisMode+1) + "-" + m_analysisModeLcdString[m_indexAnalysisMode]);
+			m_refreshScreen=false;
 		}
 	}
-	okVal=0;
+	m_okVal=0;
 	delay(200);
 	#ifdef DEBUG
-		Serial.print(">> Mode Selected: "); Serial.print(indexAnalysisMode); Serial.print(" - "); Serial.println(analysisModeLcdString[indexAnalysisMode]);
+		Serial.print(">> Mode Selected: "); Serial.print(m_indexAnalysisMode); Serial.print(" - "); Serial.println(m_analysisModeLcdString[m_indexAnalysisMode]);
 		Serial.println(">> Waiting confirm...");
 	#endif
-	switch(indexAnalysisMode){
+	switch(m_indexAnalysisMode){
 		case(ANALYSISMODE_SIMPLEREAD):{
 			lcd.clear();
 			lcd.setCursor(0, 0); lcd.print("Simple Read");
 			lcd.setCursor(0, 1); lcd.print("selected?");
-			while(!okVal && !backVal){
-				okVal=digitalRead(PIN_BUTTON_OK);
-				backVal=digitalRead(PIN_BUTTON_BACK);
-				if(okVal){
+			while(!m_okVal && !m_backVal){
+				m_okVal=digitalRead(PIN_BUTTON_OK);
+				m_backVal=digitalRead(PIN_BUTTON_BACK);
+				if(m_okVal){
 					#ifdef DEBUG
 						Serial.println(">> Simple Read Selected!");
 					#endif
-					okVal=LOW;
+					m_okVal=LOW;
 					delay(100);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Lambda (nm): ");
@@ -231,36 +236,36 @@ void loop(void){
 					#ifdef DEBUG
 						Serial.print(">> Lambda requested:\t\t");
 					#endif
-					keyPadString="";
-					while(!okVal){
-						okVal=digitalRead(PIN_BUTTON_OK);
-						customKey=0;
-						customKey=customKeypad.getKey();
+					m_keyPadString="";
+					while(!m_okVal){
+						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_customKey=0;
+						m_customKey=customKeypad.getKey();
 						delay(200);
-						if(customKey){
-							keyPadString+=customKey;
-							lcd.setCursor(0, 1); lcd.print("Set Val: " + keyPadString + "nm");
+						if(m_customKey){
+							m_keyPadString+=m_customKey;
+							lcd.setCursor(0, 1); lcd.print("Set Val: " + m_keyPadString + "nm");
 							#ifdef DEBUG
-								Serial.print(customKey);
+								Serial.print(m_customKey);
 							#endif
 						}
 					}
-					okVal=LOW;
+					m_okVal=LOW;
 					#ifdef DEBUG
 						Serial.println();
 					#endif
-					lambdaSelected=keyPadString.toInt();
+					m_lambdaRequested=m_keyPadString.toInt();
 					delay(200);
-					lambdaCorrected=constrain(lambdaSelected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
+					m_lambdaCorrected=constrain(m_lambdaRequested, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Lambda: ");
-					lcd.setCursor(0, 1); lcd.print(String(lambdaCorrected) + "nm");
+					lcd.setCursor(0, 1); lcd.print(String(m_lambdaCorrected) + "nm");
 					#ifdef DEBUG
-						if(lambdaCorrected<lambdaSelected){
-							Serial.print(">> Lambda Corrected to ["); Serial.print(lambdaCorrected); Serial.print("] couse it's lower then the lower limit of "); Serial.print(SPECTRALIMIT_LOW); Serial.println("nm.");
+						if(m_lambdaCorrected<m_lambdaRequested){
+							Serial.print(">> Lambda can't be lower then "); Serial.print(SPECTRALIMIT_LOW); Serial.print("nm. Corrected to that value. Requested was "); Serial.print(m_lambdaRequested);
 						}
-						else if (lambdaCorrected>lambdaSelected){
-							Serial.print(">> Lambda Corrected to ["); Serial.print(lambdaCorrected); Serial.print("] couse it's greater then the higher limit of "); Serial.print(SPECTRALIMIT_HIGH); Serial.println("nm.");
+						else if (m_lambdaCorrected>m_lambdaRequested){
+							Serial.print(">> Lambda can't be higher then "); Serial.print(SPECTRALIMIT_HIGH); Serial.print("nm. Corrected to that value. Requested was "); Serial.print(m_lambdaRequested); 
 						}
 						else{
 							Serial.println(">> Lambda Acceptded!!");
@@ -272,32 +277,33 @@ void loop(void){
 					#ifdef DEBUG
 						Serial.print(">> Replicates requested:\t");
 					#endif
-					keyPadString="";
-					while(!okVal){
-						okVal=digitalRead(PIN_BUTTON_OK);
-						customKey=0;
-						customKey = customKeypad.getKey();
+					m_keyPadString="";
+					while(!m_okVal){
+						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_customKey=0;
+						m_customKey = customKeypad.getKey();
 						delay(100);
-						if(customKey){
-							keyPadString+=customKey;
-							lcd.setCursor(0, 1); lcd.print("n: " + keyPadString);
+						if(m_customKey){
+							m_keyPadString+=m_customKey;
+							lcd.setCursor(0, 1); lcd.print("n: " + m_keyPadString);
 							#ifdef DEBUG
-								Serial.print(customKey);
+								Serial.print(m_customKey);
 							#endif
 						}
 					}
-					okVal=LOW;
+					m_okVal=LOW;
 					#ifdef DEBUG
-						Serial.println("nm.");
+						Serial.println(".");
 					#endif
-					nReplicates=keyPadString.toInt();
-					if(nReplicates<MIN_REPLICATES){
-						nReplicates=MIN_REPLICATES;
+					m_nReadsRequested=m_keyPadString.toInt();
+					if(m_nReadsRequested<MIN_REPLICATES){
+						m_nReadsCorrected=MIN_REPLICATES;
 						#ifdef DEBUG
-							Serial.print(">> Replicates Corrected to ["); Serial.print(nReplicates); Serial.print("] couse it's lower then the lower limit of "); Serial.print(MIN_REPLICATES); Serial.println(".");
+							Serial.print(">> Replicates can't be lower then "); Serial.print(MIN_REPLICATES); Serial.print(". Corrected to that value. Requested was "); Serial.print(m_nReadsRequested);
 						#endif
 					}
 					else{
+						m_nReadsCorrected=m_nReadsRequested;
 						#ifdef DEBUG
 							Serial.println(">> Replicates Acceptded!!");
 						#endif
@@ -306,11 +312,11 @@ void loop(void){
 						Serial.println(">> Positioning motor...");
 					#endif
 					lcd.clear();
-					lcd.setCursor(0, 0); lcd.print("Replicates: " + String(nReplicates));
+					lcd.setCursor(0, 0); lcd.print("Replicates: " + String(m_nReadsCorrected));
 					lcd.setCursor(0, 1); lcd.print("Pos.ing motor...");
-					gratingMotorFutureSteps=map(lambdaCorrected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH, MOTOR_GRATINGLIMIT_HIGH, MOTOR_GRATINGLIMIT_LOW);
-					gratingMotorChecking(PIN_MOTOR_POSITIONSENSOR, PIN_PIEZO);			//serve davvero?
-					myMotor->step(gratingMotorFutureSteps, FORWARD, SINGLE); 
+					m_gratingMotorFutureSteps=map(m_lambdaCorrected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH, MOTOR_STEPS_GRATINGLIMIT_HIGH, MOTOR_STEPS_GRATINGLIMIT_LOW);
+					gratingMotorChecking(PIN_MOTOR_POSITIONSENSOR, PIN_BUZZER);			//serve davvero?
+					myMotor->step(m_gratingMotorFutureSteps, FORWARD, SINGLE); 
 					#ifdef DEBUG
 						Serial.println(">> Positioning motor done! Waiting confirm to proceed...");
 					#endif
@@ -318,24 +324,24 @@ void loop(void){
 					lcd.setCursor(0, 0); lcd.print("Press 'OK' to");
 					lcd.setCursor(0, 1); lcd.print("AutoZero");
 					//rivedere
-					while(!okVal){
-						okVal=digitalRead(PIN_BUTTON_OK);
+					while(!m_okVal){
+						m_okVal=digitalRead(PIN_BUTTON_OK);
 					}
-					okVal=LOW;
+					m_okVal=LOW;
 					#ifdef DEBUG
 						Serial.println(">> Reading blank...");
 					#endif
-					nReads=0;
-					sumBackgroundReadsVal=0;
+					m_nReadsCaptured=0;
+					m_sumBackgroundReadsVal=0;
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Reading...");
 					lcd.setCursor(0, 1); lcd.print("Index: ");
-					for(nReads; nReads<nReplicates; nReads++){
-						lcd.setCursor(7, 1); lcd.print(String(nReads) + "/" + String(nReplicates));
+					for(m_nReadsCaptured; m_nReadsCaptured<m_nReadsCorrected; m_nReadsCaptured++){
+						lcd.setCursor(7, 1); lcd.print(String(m_nReadsCaptured) + "/" + String(m_nReadsCorrected));
 						simpleRead();
-						sumBackgroundReadsVal+=readsVal;
+						m_sumBackgroundReadsVal+=m_readsVal;
 					}
-					nReads=0;
+					m_nReadsCaptured=0;
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Load Sample!");
 					lcd.setCursor(0, 1); lcd.print("'OK' to read...");
@@ -343,23 +349,23 @@ void loop(void){
 						Serial.println(">> Blank reads done! Waiting confirm to proceed to Sample...");
 					#endif
 					delay(200);
-					while(!okVal && !backVal){
-						okVal=digitalRead(PIN_BUTTON_OK);
-						backVal=digitalRead(PIN_BUTTON_BACK);
-						if(okVal){
-							okVal=LOW;
+					while(!m_okVal && !m_backVal){
+						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_backVal=digitalRead(PIN_BUTTON_BACK);
+						if(m_okVal){
+							m_okVal=LOW;
 							#ifdef DEBUG
 								Serial.println(">> Reading Sample...");
 							#endif
 							lcd.clear();
 							lcd.setCursor(0, 0); lcd.print("Reading...");
 							lcd.setCursor(0, 1); lcd.print("Index: ");
-							nReads=0;
-							sumSampleReadsVal=0;
-							for(nReads; nReads<nReplicates; nReads++){
-								lcd.setCursor(7, 1); lcd.print(String(nReads) + "/" + String(nReplicates));
+							m_nReadsCaptured=0;
+							m_sumSampleReadsVal=0;
+							for(m_nReadsCaptured; m_nReadsCaptured<m_nReadsCorrected; m_nReadsCaptured++){
+								lcd.setCursor(7, 1); lcd.print(String(m_nReadsCaptured) + "/" + String(m_nReadsCorrected));
 								simpleRead();
-								sumSampleReadsVal+=readsVal;
+								m_sumSampleReadsVal+=m_readsVal;
 							}
 							lcd.clear();
 							lcd.setCursor(0, 0); lcd.print("--LOADING DATA-");
@@ -367,161 +373,162 @@ void loop(void){
 							#ifdef DEBUG
 								Serial.println(">> Sample reads done! Calculating results...");
 							#endif
-							float iSource=sumBackgroundReadsVal/(float)nReplicates;
-							float iSample=((sumSampleReadsVal/(float)nReplicates));
-							float trasmittance=iSample/iSource;
-							float absorbance=log10(1/((((sumSampleReadsVal/(float)nReplicates)/(sumBackgroundReadsVal/(float)nReplicates))))); //verificare il 1000
+							//float iSource=m_sumBackgroundReadsVal/(float)m_nReadsCorrected;
+							//float iSample=((m_sumSampleReadsVal/(float)m_nReadsCorrected));
+							//float trasmittance=iSample/iSource;
 							//float Abs=log10(1/(iSample/iSource))*1000;
+							float trasmittance	=	(m_sumSampleReadsVal/(float)m_nReadsCorrected)/(m_sumBackgroundReadsVal/(float)m_nReadsCorrected);
+							float absorbance	=	log10(1/((((m_sumSampleReadsVal/(float)m_nReadsCorrected)/(m_sumBackgroundReadsVal/(float)m_nReadsCorrected))))); //verificare il 1000
 							lcd.clear();
 							lcd.setCursor(0, 0); lcd.print("Abs Sample:");
 							lcd.setCursor(0, 1); lcd.print(String(absorbance,DECIMAL_LCD_ABSORBANCE));
 							#ifdef DEBUG
 								Serial.println(">> [---------------------------------------------------]");
-								Serial.print(">> [ Number of reads:\t\t");	Serial.println(nReplicates);
-								Serial.print(">> [ Background Average:\t");	Serial.println((sumBackgroundReadsVal)/(nReplicates));
-								Serial.print(">> [ Sample Average:\t\t");	Serial.println((sumSampleReadsVal)/(nReplicates));
-								//Serial.print(">> [ iSource:\t\t\t");		Serial.println(iSource);
-								//Serial.print(">> [ iSample:\t\t\t");		Serial.println(iSample);
+								Serial.print(">> [ Number of reads:\t\t");	Serial.println(m_nReadsCorrected);
+								Serial.print(">> [ Background Average:\t");	Serial.println((m_sumBackgroundReadsVal)/(m_nReadsCorrected));
+								Serial.print(">> [ Sample Average:\t\t");	Serial.println((m_sumSampleReadsVal)/(m_nReadsCorrected));
 								Serial.print(">> [ Trasmittance:\t\t");		Serial.println(trasmittance,DECIMAL_SERIAL_TRASMITTANCE);
 								Serial.print(">> [ Absorbance:\t\t");		Serial.println(absorbance,DECIMAL_SERIAL_ABSORBANCE);
+								//Serial.print(">> [ iSource:\t\t\t");		Serial.println(iSource);
+								//Serial.print(">> [ iSample:\t\t\t");		Serial.println(iSample);
 								//Serial.print(">> [ Abs:\t\t\t");			Serial.print(Abs); 										Serial.println("*10^-3.");
 								Serial.println(">> [---------------------------------------------------]");
 							#endif
 						}
-						//okVal=LOW;
+						//m_okVal=LOW;
 					}
-					backVal=LOW;
+					m_backVal=LOW;
 				}
 			}
-			backVal=LOW;
-			refreshScreen=true;
+			m_backVal=LOW;
+			m_refreshScreen=true;
 			break;
 		}
 		case(ANALYSISMODE_ALLSPECTRUM):{
 			lcd.clear();
 			lcd.setCursor(0, 0); lcd.print("All Spectrum");
 			lcd.setCursor(0, 1); lcd.print("selected?");
-			while(!okVal && !backVal){
-				okVal=digitalRead(PIN_BUTTON_OK);
-				backVal=digitalRead(PIN_BUTTON_BACK);
-				if(okVal){
-					okVal=LOW;
+			while(!m_okVal && !m_backVal){
+				m_okVal=digitalRead(PIN_BUTTON_OK);
+				m_backVal=digitalRead(PIN_BUTTON_BACK);
+				if(m_okVal){
+					m_okVal=LOW;
 					delay(1000);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Spectrum range");
 					lcd.setCursor(0, 1); lcd.print("Set MIN:  ");
-					keyPadString="";
-					while(okVal==LOW){
-						customKey=0;
-						customKey = customKeypad.getKey();
+					m_keyPadString="";
+					while(m_okVal==LOW){
+						m_customKey=0;
+						m_customKey = customKeypad.getKey();
 						delay(100);
-						if(customKey){
-							keyPadString=keyPadString+customKey;
-							lcd.setCursor(0, 1); lcd.print("Set MIN:  " + keyPadString);
+						if(m_customKey){
+							m_keyPadString=m_keyPadString+m_customKey;
+							lcd.setCursor(0, 1); lcd.print("Set MIN:  " + m_keyPadString);
 						}
-						okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(PIN_BUTTON_OK);
 					}
-					lambdaSelected=keyPadString.toInt();
-					lambdaMin=constrain(lambdaSelected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
-					okVal=LOW;
+					m_lambdaRequested=m_keyPadString.toInt();
+					m_lambdaMin=constrain(m_lambdaRequested, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
+					m_okVal=LOW;
 					delay(1000);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Spectrum range");
 					lcd.setCursor(0, 1); lcd.print("Set MAX:  ");
-					keyPadString="";
-					while(okVal==LOW){
-						customKey=0;
-						customKey = customKeypad.getKey();
+					m_keyPadString="";
+					while(m_okVal==LOW){
+						m_customKey=0;
+						m_customKey = customKeypad.getKey();
 						delay(100);
-						if(customKey){
-							keyPadString=keyPadString+customKey;
-							lcd.setCursor(0, 1); lcd.print("Set MAX:  " + keyPadString);
+						if(m_customKey){
+							m_keyPadString=m_keyPadString+m_customKey;
+							lcd.setCursor(0, 1); lcd.print("Set MAX:  " + m_keyPadString);
 						}
-						okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(PIN_BUTTON_OK);
 					}
-					lambdaSelected=keyPadString.toInt();
-					lambdaMax=constrain(lambdaSelected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
-					okVal=LOW;
+					m_lambdaRequested=m_keyPadString.toInt();
+					m_lambdaMax=constrain(m_lambdaRequested, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
+					m_okVal=LOW;
 					delay(1000);
 					lcd.clear();
-					lcd.setCursor(0, 0); lcd.print("MIN:  "); lcd.print(lambdaMin);
-					lcd.setCursor(0, 1); lcd.print("MAX:  "); lcd.print(lambdaMax);
+					lcd.setCursor(0, 0); lcd.print("MIN:  "); lcd.print(m_lambdaMin);
+					lcd.setCursor(0, 1); lcd.print("MAX:  "); lcd.print(m_lambdaMax);
 					delay(1000);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Grating Motor");
 					lcd.setCursor(0, 1); lcd.print("Zero setting...");
-					gratingMotorZeroPoint(PIN_MOTOR_POSITIONSENSOR, PIN_PIEZO);
+					gratingMotorZeroPoint(PIN_MOTOR_POSITIONSENSOR, PIN_BUZZER);
 					delay(1000);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Set Replicates");
 					lcd.setCursor(0, 1); lcd.print("n:  ");
-					keyPadString="";
-					while(okVal==LOW){
-						customKey=0;
-						customKey = customKeypad.getKey();
+					m_keyPadString="";
+					while(m_okVal==LOW){
+						m_customKey=0;
+						m_customKey = customKeypad.getKey();
 						delay(100);
-						if(customKey){
-							keyPadString=keyPadString+customKey;
-							lcd.setCursor(0, 1); lcd.print("n:  " + keyPadString);
+						if(m_customKey){
+							m_keyPadString=m_keyPadString+m_customKey;
+							lcd.setCursor(0, 1); lcd.print("n:  " + m_keyPadString);
 						}
-						okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(PIN_BUTTON_OK);
 					}
-					nReplicates=keyPadString.toInt();
-					okVal=LOW;
+					m_nReadsCorrected=m_keyPadString.toInt();
+					m_okVal=LOW;
 					delay(1000);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Replicates:  ");
-					lcd.setCursor(0, 1); lcd.print(nReplicates);
+					lcd.setCursor(0, 1); lcd.print(m_nReadsCorrected);
 					delay(3000);
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Press 'OK' to");
 					lcd.setCursor(0, 1); lcd.print("AutoZero");
-					while(okVal==LOW){
-						okVal=digitalRead(PIN_BUTTON_OK);
+					while(m_okVal==LOW){
+						m_okVal=digitalRead(PIN_BUTTON_OK);
 					}
-					okVal=LOW;
+					m_okVal=LOW;
 					backgroundSensor();
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Load Sample!");
 					lcd.setCursor(0, 1); lcd.print("'OK' to read...");
-					x=0;
+					m_allSpectrumScanID=0;
 					delay(1000);
-					while(backVal==LOW){
-						okVal=digitalRead(PIN_BUTTON_OK);
-						backVal=digitalRead(PIN_BUTTON_BACK);
-						if(okVal==HIGH){
-							okVal=LOW;
-							x++;
+					while(m_backVal==LOW){
+						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_backVal=digitalRead(PIN_BUTTON_BACK);
+						if(m_okVal==HIGH){
+							m_okVal=LOW;
+							m_allSpectrumScanID++;
 							lcd.clear();
 							lcd.setCursor(0, 0); lcd.print("Reading...");
 							delay(1000);
 							//	>> ======================= TODO ======================= << 
 							lcd.clear();
-							lcd.setCursor(0, 0); lcd.print("Spectrum " + x);
+							lcd.setCursor(0, 0); lcd.print("Spectrum " + m_allSpectrumScanID);
 							lcd.setCursor(0, 1); lcd.print("Saved!");
 						}
 					}
-					backVal=LOW;
+					m_backVal=LOW;
 				}
 			}
-			backVal=LOW;
-			refreshScreen=true;
+			m_backVal=LOW;
+			m_refreshScreen=true;
 			break;				
 		}
 		case(ANALYSISMODE_CONCANALYSIS):{
 			lcd.clear();
 			lcd.setCursor(0, 0); lcd.print("Conc. Analysis");
 			lcd.setCursor(0, 1); lcd.print("selected?");
-			while((okVal==LOW) && (backVal==LOW)){
-				okVal=digitalRead(PIN_BUTTON_OK);
-				backVal=digitalRead(PIN_BUTTON_BACK);
-				if(okVal){
-					okVal=LOW;
+			while((m_okVal==LOW) && (m_backVal==LOW)){
+				m_okVal=digitalRead(PIN_BUTTON_OK);
+				m_backVal=digitalRead(PIN_BUTTON_BACK);
+				if(m_okVal){
+					m_okVal=LOW;
 					//	>> ======================= TODO ======================= << 
 				}
 			}
-			backVal=LOW;
-			refreshScreen=true;
+			m_backVal=LOW;
+			m_refreshScreen=true;
 			break;
 		}
 		
