@@ -57,8 +57,8 @@ int nReplicates;
 int nReads;
 int readsVal=0;
 int sumReadsVal=0;
-long sumBackgroundReadsVal=0;
-long sumSampleReadsVal=0;
+float sumBackgroundReadsVal=0;
+float sumSampleReadsVal=0;
 
 int backVal=LOW;
 int nextVal=LOW;
@@ -79,8 +79,9 @@ void setup(void){
 		Serial.println("=====================================");
 		Serial.println("========== STARTING SYSTEM ==========");
 		Serial.println("=====================================");
-		Serial.print("========== Model:\t"); 		Serial.println(MODEL_VERSION);
-		Serial.print("========== Firmware:\t"); 	Serial.println(FIRMWARE_VERSION);
+		Serial.print("========== Model:\t"); 						Serial.println(MODEL_VERSION);
+		Serial.print("========== Firmware:\t"); 					Serial.println(FIRMWARE_VERSION);
+		Serial.println("=====================================");
 	#endif
 	AFMS.begin();
 	myMotor->setSpeed(MOTOR_SPEED_RPM);
@@ -135,6 +136,7 @@ void setup(void){
 	gratingMotorCurrentSteps=0;
 	#ifdef DEBUG
 		Serial.println("======= Initialization COMPLETED =======");
+		Serial.print("================ "); Serial.print(millis()/1000); Serial.println("s =================");
 	#endif
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Instrument");
@@ -207,7 +209,7 @@ void loop(void){
 	delay(200);
 	#ifdef DEBUG
 		Serial.print(">> Mode Selected: "); Serial.print(indexAnalysisMode); Serial.print(" - "); Serial.println(analysisModeLcdString[indexAnalysisMode]);
-		Serial.println("Waiting confirm...");
+		Serial.println(">> Waiting confirm...");
 	#endif
 	switch(indexAnalysisMode){
 		case(ANALYSISMODE_SIMPLEREAD):{
@@ -219,7 +221,7 @@ void loop(void){
 				backVal=digitalRead(PIN_BUTTON_BACK);
 				if(okVal){
 					#ifdef DEBUG
-						Serial.println("Simple Read Selected!");
+						Serial.println(">> Simple Read Selected!");
 					#endif
 					okVal=LOW;
 					delay(100);
@@ -227,7 +229,7 @@ void loop(void){
 					lcd.setCursor(0, 0); lcd.print("Lambda (nm): ");
 					lcd.setCursor(0, 1); lcd.print("Set Val: ");
 					#ifdef DEBUG
-						Serial.print(">> Lambda requested:\t");
+						Serial.print(">> Lambda requested:\t\t");
 					#endif
 					keyPadString="";
 					while(!okVal){
@@ -258,10 +260,10 @@ void loop(void){
 							Serial.print(">> Lambda Corrected to ["); Serial.print(lambdaCorrected); Serial.print("] couse it's lower then the lower limit of "); Serial.print(SPECTRALIMIT_LOW); Serial.println("nm.");
 						}
 						else if (lambdaCorrected>lambdaSelected){
-							Serial.print(">> Lambda Corrected to ["); Serial.print(lambdaCorrected); Serial.print("] couse it's greater then the higher limit of "); Serial.print(SPECTRALIMIT_LOW); Serial.println("nm.");
+							Serial.print(">> Lambda Corrected to ["); Serial.print(lambdaCorrected); Serial.print("] couse it's greater then the higher limit of "); Serial.print(SPECTRALIMIT_HIGH); Serial.println("nm.");
 						}
 						else{
-							Serial.println(">> Lambda Acceptded.");
+							Serial.println(">> Lambda Acceptded!!");
 						}
 					#endif
 					lcd.clear();
@@ -286,21 +288,23 @@ void loop(void){
 					}
 					okVal=LOW;
 					#ifdef DEBUG
-						Serial.println();
+						Serial.println("nm.");
 					#endif
 					nReplicates=keyPadString.toInt();
 					if(nReplicates<MIN_REPLICATES){
-						#ifdef DEBUG
-							Serial.print(">> Replicates Corrected to ["); Serial.print(nReplicates); Serial.print("] couse it's lower then the lower limit of "); Serial.print(MIN_REPLICATES); Serial.println("nm.");
-						#endif
 						nReplicates=MIN_REPLICATES;
+						#ifdef DEBUG
+							Serial.print(">> Replicates Corrected to ["); Serial.print(nReplicates); Serial.print("] couse it's lower then the lower limit of "); Serial.print(MIN_REPLICATES); Serial.println(".");
+						#endif
 					}
 					else{
 						#ifdef DEBUG
-							Serial.println(">> Replicates Acceptded.");
+							Serial.println(">> Replicates Acceptded!!");
 						#endif
 					}
-					//delay(1000);
+					#ifdef DEBUG
+						Serial.println(">> Positioning motor...");
+					#endif
 					lcd.clear();
 					lcd.setCursor(0, 0); lcd.print("Replicates: " + String(nReplicates));
 					lcd.setCursor(0, 1); lcd.print("Pos.ing motor...");
@@ -345,7 +349,7 @@ void loop(void){
 						if(okVal){
 							okVal=LOW;
 							#ifdef DEBUG
-								Serial.println(">> Reading blank...");
+								Serial.println(">> Reading Sample...");
 							#endif
 							lcd.clear();
 							lcd.setCursor(0, 0); lcd.print("Reading...");
@@ -363,25 +367,24 @@ void loop(void){
 							#ifdef DEBUG
 								Serial.println(">> Sample reads done! Calculating results...");
 							#endif
-							long iSource=((sumBackgroundReadsVal)/(nReplicates));
-							long iSample=((sumSampleReadsVal)/(nReplicates));
-							long trasmittance=(1000*((iSample)/(iSource)));
-							long absorbance=log10(1/((iSample)/(iSource)))*1000;
-							long Abs=(log10(1/((sumSampleReadsVal)/(nReplicates)/(sumBackgroundReadsVal)/(nReplicates))))*1000;
-							
+							float iSource=sumBackgroundReadsVal/(float)nReplicates;
+							float iSample=((sumSampleReadsVal/(float)nReplicates));
+							float trasmittance=iSample/iSource;
+							float absorbance=log10(1/((((sumSampleReadsVal/(float)nReplicates)/(sumBackgroundReadsVal/(float)nReplicates))))); //verificare il 1000
+							//float Abs=log10(1/(iSample/iSource))*1000;
 							lcd.clear();
 							lcd.setCursor(0, 0); lcd.print("Abs Sample:");
-							lcd.setCursor(0, 1); lcd.print(String(Abs));
+							lcd.setCursor(0, 1); lcd.print(String(absorbance,DECIMAL_LCD_ABSORBANCE));
 							#ifdef DEBUG
 								Serial.println(">> [---------------------------------------------------]");
-								Serial.print(">> [ Numeber of reads:\t");	Serial.println(nReplicates);
+								Serial.print(">> [ Number of reads:\t\t");	Serial.println(nReplicates);
 								Serial.print(">> [ Background Average:\t");	Serial.println((sumBackgroundReadsVal)/(nReplicates));
 								Serial.print(">> [ Sample Average:\t\t");	Serial.println((sumSampleReadsVal)/(nReplicates));
-								Serial.print(">> [ iSource:\t\t\t\t");		Serial.println(iSource);
-								Serial.print(">> [ iSample:\t\t\t\t");		Serial.println(iSample);
-								Serial.print(">> [ Trasmittance:\t\t\t");	Serial.println(trasmittance);
-								Serial.print(">> [ Absorbance:\t\t\t\t");	Serial.println(absorbance);
-								Serial.print(">> [ Abs:\t\t\t\t\t");		Serial.println(Abs);
+								//Serial.print(">> [ iSource:\t\t\t");		Serial.println(iSource);
+								//Serial.print(">> [ iSample:\t\t\t");		Serial.println(iSample);
+								Serial.print(">> [ Trasmittance:\t\t");		Serial.println(trasmittance,DECIMAL_SERIAL_TRASMITTANCE);
+								Serial.print(">> [ Absorbance:\t\t");		Serial.println(absorbance,DECIMAL_SERIAL_ABSORBANCE);
+								//Serial.print(">> [ Abs:\t\t\t");			Serial.print(Abs); 										Serial.println("*10^-3.");
 								Serial.println(">> [---------------------------------------------------]");
 							#endif
 						}

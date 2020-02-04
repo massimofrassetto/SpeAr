@@ -64,7 +64,7 @@ void tslSensorChecking (void){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("TSL2591");
 	lcd.setCursor(0, 1); lcd.print("Checking..."); 
-	delay(1000);
+	delay(500);
 	if (tsl.begin()){
 		lcd.clear();
 		lcd.setCursor(0, 0); lcd.print("TSL2591 Sensor");
@@ -96,14 +96,14 @@ void gratingMotorChecking (const int sensMotCheckPin, const int piezoCheckPin){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Motor Setted!");
 	lcd.setCursor(0, 1); lcd.print("Dgr.= 0'");
-	delay(1000);
+	delay(500);
 }
 
 void SDCardChecking (const int chipSel){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Initializing");
 	lcd.setCursor(0, 1); lcd.print("SD card...");
-	delay(2000);
+	delay(500);
 	if (!SD.begin(chipSel)) {
 		printWiringError(PIN_PIEZO);
 		delay(2500);
@@ -112,7 +112,7 @@ void SDCardChecking (const int chipSel){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Initialization");
 	lcd.setCursor(0, 1); lcd.print("DONE!!!");
-	delay(3000);
+	delay(500);
 }
 
 void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState, const int piezoLCPin){
@@ -165,7 +165,7 @@ int simpleRead(void){
 	//uint16_t x = tsl.getLuminosity(TSL2561_FULLSPECTRUM);
 	//uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
 
-	Serial.println(x, DEC);
+	Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
 	readsVal=x;
 }
 

@@ -2,7 +2,7 @@
 #define COSTANTS.h
 
 #define MODEL_VERSION						1.0
-#define FIRMWARE_VERSION					12
+#define FIRMWARE_VERSION					13
 
 #define SERIAL_BAUDRATE						115200
 
@@ -60,6 +60,11 @@
 #define SPECTRALIMIT_LOW					380
 #define SPECTRALIMIT_HIGH					780
 #define MIN_REPLICATES						5
+
+#define DECIMAL_LCD_TRASMITTANCE			6
+#define DECIMAL_SERIAL_TRASMITTANCE			8
+#define DECIMAL_LCD_ABSORBANCE				6
+#define DECIMAL_SERIAL_ABSORBANCE			8
 
 
 #endif
