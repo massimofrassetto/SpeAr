@@ -13,7 +13,8 @@ void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin);
 void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
 void SDCardChecking(const int chipSel);
 void lampChecking(const int lampSensPin, const int lampStatePin, int* lampState, const int buzzerLCPin);
-int simpleRead(void);
+// int simpleRead(void);
+uint16_t simpleRead(int tslReadType);
 void backgroundSensor(void);
 
 // =========================================================================================
@@ -76,18 +77,19 @@ void printWiringError (const int allarmPin){
 */
 void tslSensorChecking (void){
 	lcd.clear();
-	lcd.setCursor(0, 0); lcd.print("TSL2591");
-	lcd.setCursor(0, 1); lcd.print("Checking..."); 
+	// lcd.setCursor(0, 0); lcd.print("TSL2591");
+	lcd.setCursor(0, 0); lcd.print("Checking TSL..."); 
 	delay(500);
 	if (tsl.begin()){
-		lcd.clear();
-		lcd.setCursor(0, 0); lcd.print("TSL2591 Sensor");
-		lcd.setCursor(0, 1); lcd.print("OK");
+		// lcd.clear();
+		// lcd.setCursor(0, 0); lcd.print("TSL2591 Sensor");
+		lcd.setCursor(0, 1); lcd.print("	OK!");
 	} 
 	else{
 		printWiringError(PIN_BUZZER);
 	}
 	delay(500);
+	//se il collegamento riesce lo configuro già (da portare fuori successivamente)
 	configureSensor();
 	delay(500);
 }
@@ -99,11 +101,16 @@ void gratingMotorZeroPoint (const int sensMotPin, const int buzzerPin){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Grating Motor");
 	lcd.setCursor(0, 1); lcd.print("Homing...");
-	int positionMotorSensorVal=analogRead(sensMotPin);
-	while(positionMotorSensorVal<=MOTOR_POSITIONSENSOR_THRESHOLD){
-		positionMotorSensorVal=analogRead(sensMotPin);
+	// int positionMotorSensorVal=analogRead(sensMotPin);
+	// while(positionMotorSensorVal<=MOTOR_POSITIONSENSOR_THRESHOLD){
+		// positionMotorSensorVal=analogRead(sensMotPin);
+		// myMotor->step(1, BACKWARD, SINGLE); 
+	// }
+	//proseguo fintanto che non incontro lo zero macchina (quando la fotocellula vede la fessura nella "ruota fonica")
+	while(analogRead(sensMotPin)<=MOTOR_POSITIONSENSOR_THRESHOLD){
 		myMotor->step(1, BACKWARD, SINGLE); 
 	}
+	//a questo punto torno indietro fino a che la mia superfice rifrangente non è perpendicolare al raggio della sorgente luminosa
 	myMotor->step(MOTOR_STEPS_MACHINEZERO, FORWARD, SINGLE);
 	tone(buzzerPin, 400, 500);
 }
@@ -149,6 +156,14 @@ void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState
 	lcd.setCursor(0, 0); lcd.print("Lamp");
 	lcd.setCursor(0, 1); lcd.print("Checking");
 	//delay(2500);
+	/*
+	la logica dietro questo test è la seguente:
+		- rilevo se è gia accesa (valotare se accendere solo quando necessario) e poi la spegno;
+		- rilevo se è spenta e poi riaccendo;
+		- rilevo se è accesa.
+	Ad ogni step vado a salvare l'esito su un array così avrò modo, in caso di problemi, di sapere dove è avvenuto.
+	Tra uno stato e l'altro do il tempo alla resistenza della lampada di spegnersi del tutto per evitare false lettura (verificare se si può abbassare il tempo).
+	*/
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	lcd.print(".");
 	if(lampCheckingSensorVal>LAMP_CHECKINGSENSOR_THRESHOLD){
@@ -187,22 +202,38 @@ void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState
 	La tengo per il momento ma in realtà è totalmente inuitle in quanto talmente semplice.
 	Al più bisogna vedere come gestire il campo di lettura in base alle impostazioni di default
 */
-int simpleRead(void){
-	// Simple data read example. Just read the infrared, fullspecrtrum diode 
-	// or 'visible' (difference between the two) channels.
-	// This can take 100-600 milliseconds! Uncomment whichever of the following you want to read
-	uint16_t x = tsl.getLuminosity(TSL2591_VISIBLE);
-	//uint16_t x = tsl.getLuminosity(TSL2561_FULLSPECTRUM);
-	//uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
+	// // Simple data read example. Just read the infrared, fullspecrtrum diode 
+	// // or 'visible' (difference between the two) channels.
+	// // This can take 100-600 milliseconds! Uncomment whichever of the following you want to read
+// int simpleRead(void){
+	// uint16_t x = tsl.getLuminosity(TSL2591_VISIBLE);
+	// //uint16_t x = tsl.getLuminosity(TSL2561_FULLSPECTRUM);
+	// //uint16_t x = tsl.getLuminosity(TSL2561_INFRARED);
 
-	Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
-	m_readsVal=x;
+	// Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
+	// m_readsVal=x;
+// }
+uint16_t simpleRead(int tslReadType){
+	switch(tslReadType){
+		case(TSL_READTYPE_VISIBLE):{
+			return tsl.getLuminosity(TSL2591_VISIBLE);
+			break;
+		}
+		// case(TSL_READTYPE_FULLSPECTRUM):{
+			// return tsl.getLuminosity(TSL2561_FULLSPECTRUM);
+			// break;
+		// }
+		// case(TSL_READTYPE_INFRARED):{
+			// return tsl.getLuminosity(TSL2561_INFRARED);
+			// break;
+		// }
+	}
 }
 
 /*
 	Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
 */
-void backgroundSensor (void){
+void backgroundSensor(void){
 	delay(1000);
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Opening...");

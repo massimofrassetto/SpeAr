@@ -5,10 +5,15 @@
 
 //Informazioni interne della macchina
 #define MODEL_VERSION						1.0
-#define FIRMWARE_VERSION					13.1
+#define FIRMWARE_VERSION					13.2
 
 //velocità della comunicazione seriale
 #define SERIAL_BAUDRATE						115200
+
+/* ======== PARAMETRI PER GESTIRE IL SENSORE TSL ======== */
+#define TSL_READTYPE_VISIBLE				0
+// #define TSL_READTYPE_FULLSPECTRUM			1
+// #define TSL_READTYPE_INFRARED				2
 
 /* ======== PARAMETRI PER GESTIRE LO SCHERMO LCD ======== */
 //Dimensioni dello schermo

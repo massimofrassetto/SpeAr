@@ -2,8 +2,6 @@
 
 #define DEBUG
 
-#include <ArduinoLog.h>
-
 #include <LiquidCrystal.h>
 
 #include <Wire.h>
@@ -338,8 +336,10 @@ void loop(void){
 					lcd.setCursor(0, 1); lcd.print("Index: ");
 					for(m_nReadsCaptured; m_nReadsCaptured<m_nReadsCorrected; m_nReadsCaptured++){
 						lcd.setCursor(7, 1); lcd.print(String(m_nReadsCaptured) + "/" + String(m_nReadsCorrected));
-						simpleRead();
+						// simpleRead();
+						m_readsVal=simpleRead(TSL_READTYPE_VISIBLE);
 						m_sumBackgroundReadsVal+=m_readsVal;
+						Serial.print(">> "); Serial.println(m_readsVal);
 					}
 					m_nReadsCaptured=0;
 					lcd.clear();
@@ -364,8 +364,10 @@ void loop(void){
 							m_sumSampleReadsVal=0;
 							for(m_nReadsCaptured; m_nReadsCaptured<m_nReadsCorrected; m_nReadsCaptured++){
 								lcd.setCursor(7, 1); lcd.print(String(m_nReadsCaptured) + "/" + String(m_nReadsCorrected));
-								simpleRead();
-								m_sumSampleReadsVal+=m_readsVal;
+								// simpleRead();
+								m_readsVal=simpleRead(TSL_READTYPE_VISIBLE);
+								m_sumBackgroundReadsVal+=m_readsVal;
+								Serial.print(">> "); Serial.println(m_readsVal);
 							}
 							lcd.clear();
 							lcd.setCursor(0, 0); lcd.print("--LOADING DATA-");

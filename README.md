@@ -14,7 +14,6 @@ Se pensi che qualcosa possa essere migliorato o hai voglia di aiutarmi scrivimi 
 TODO
 
 - `SCRIVERE O TROVARE UNA LIBRERIA PER UNA SORTA DI TRACELOG`.
-	- https://github.com/thijse/Arduino-Log
 - Gestire le funzioni in modo che
 	- non siano più legate alle variabili globali
 	- siano pacchettizzate e riutilizzabili
