@@ -1,44 +1,52 @@
-/* FILE CONTENENTE TUTTE LE FUNZIONI */
+//	FILE CONTENENTE TUTTE LE FUNZIONI 
 
-#ifndef FUNCTIONS.h
-#define FUNCTIONS.h
+#ifndef FUNCTIONS_h
+#define FUNCTIONS_h
 
 // =========================================================================================
 // ======================================= PROTOTIPI =======================================
 // =========================================================================================
 
-void configureSensor(void);
-void printWiringError(const int allarmPin);
+int tslSensorInitializationConnection(void);
+void tslConfigureSensor(void);
+void printWiringError(const int alarmPin);
 void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin);
 void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
-void SDCardChecking(const int chipSel);
-void lampChecking(const int lampSensPin, const int lampStatePin, int* lampState, const int buzzerLCPin);
-// int simpleRead(void);
+int SDCardChecking(const int chipSel);
+int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin);
 uint16_t simpleRead(int tslReadType);
 void backgroundSensor(void);
+void displaySensorDetails(void);
+void waitingButtonRelease(int pinButton, int* buttonVal);
+
 
 // =========================================================================================
 // ======================================= FUNZIONI ========================================
 // =========================================================================================
 
-/*
-	Funzione per decidere quale sensibilità ed il tempo di integrazione che il mio sensore deve avere.
-	Ora il valore è scolpito in fase di compilazione.
-	In un futuro bisogna informarsi per capire se è possibile modificare questi dati
-	mentre lo spettrofotometro è acceso
-*/
-void configureSensor(void){
-		//tsl.setGain(TSL2591_GAIN_LOW);			// 1x gain (bright light)
-	//tsl.setGain(TSL2591_GAIN_MED);			// 25x gain
-	//tsl.setGain(TSL2591_GAIN_HIGH);		 // 428x gain
-	tsl.setGain(TSL2591_GAIN_MAX);				// 9876x (extremely low light)
+void waitingButtonRelease(int pinButton, int* buttonVal){
+	while(digitalRead(pinButton)){
+		;
+	}
+	(*buttonVal)=LOW;
+}
+
+// Funzione per decidere quale sensibilità ed il tempo di integrazione che il mio sensore deve avere.
+// Ora il valore è scolpito in fase di compilazione.
+// In un futuro bisogna informarsi per capire se è possibile modificare questi dati
+// mentre lo spettrofotometro è acceso
+void tslConfigureSensor(void){
+	//tsl.setGain(TSL2591_GAIN_LOW);					// 1x gain (bright light)
+	//tsl.setGain(TSL2591_GAIN_MED);						// 25x gain
+	//tsl.setGain(TSL2591_GAIN_HIGH);		 				// 428x gain
+	tsl.setGain(TSL2591_GAIN_MAX);							// 9876x (extremely low light)
  
-	//tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);	// shortest integration time (bright light)
+	//tsl.setTiming(TSL2591_INTEGRATIONTIME_100MS);			// shortest integration time (bright light)
 	//tsl.setTiming(TSL2591_INTEGRATIONTIME_200MS);
 	tsl.setTiming(TSL2591_INTEGRATIONTIME_300MS);
 	//tsl.setTiming(TSL2591_INTEGRATIONTIME_400MS);
 	//tsl.setTiming(TSL2591_INTEGRATIONTIME_500MS);
-	//tsl.setTiming(TSL2591_INTEGRATIONTIME_600MS);	// longest integration time (dim light)
+	//tsl.setTiming(TSL2591_INTEGRATIONTIME_600MS);			// longest integration time (dim light)
  
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Gain:");
@@ -61,43 +69,45 @@ void configureSensor(void){
 	delay(500);
 }
 
-/*
-	In caso di errori durante il check questa è la funzione per avvisare l'utente che qualcosa non va.
-*/
-void printWiringError (const int allarmPin){
+// Displays some basic information on this sensor from the unified
+// sensor API sensor_t type (see Adafruit_Sensor for more information)
+void displaySensorDetails(void){
+	sensor_t sensor;
+	tsl.getSensor(&sensor);
+	Serial.print (">> == Sensor: \t\t\t\t"); 	Serial.println(sensor.name);
+	Serial.print (">> == Driver Ver: \t\t\t"); 	Serial.println(sensor.version);
+	Serial.print (">> == Unique ID: \t\t\t"); 	Serial.println(sensor.sensor_id);
+	Serial.print (">> == Max Value: \t\t\t"); 	Serial.print(sensor.max_value); 	Serial.println(" lux");
+	Serial.print (">> == Min Value: \t\t\t"); 	Serial.print(sensor.min_value); 	Serial.println(" lux");
+	Serial.print (">> == Resolution: \t\t\t"); 	Serial.print(sensor.resolution); 	Serial.println(" lux");
+}
+
+
+// In caso di errori durante il check questa è la funzione per avvisare l'utente che qualcosa non va.
+void printWiringError (const int alarmPin){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("OH-oh..");
-	tone(allarmPin, 400, 1000); delay(500);
-	tone(allarmPin, 400, 1000);
 	lcd.setCursor(0, 1); lcd.print("check wiring?");
+	tone(alarmPin, 400, 1000); delay(500);
+	tone(alarmPin, 400, 1000);
 }
 
-/*
-	Verifico che la comunicazione con il sensore tsl sia funzionante
-*/
-void tslSensorChecking (void){
+// Verifico che la comunicazione con il sensore tsl sia funzionante
+int tslSensorInitializationConnection(void){
 	lcd.clear();
-	// lcd.setCursor(0, 0); lcd.print("TSL2591");
-	lcd.setCursor(0, 0); lcd.print("Checking TSL..."); 
-	delay(500);
+	lcd.setCursor(0, 0); lcd.print("Checking TSL...");
 	if (tsl.begin()){
-		// lcd.clear();
-		// lcd.setCursor(0, 0); lcd.print("TSL2591 Sensor");
 		lcd.setCursor(0, 1); lcd.print("	OK!");
+		return TSL_CONNECTION_DONE;
 	} 
 	else{
-		printWiringError(PIN_BUZZER);
+		return TSL_CONNECTION_FAILED;
+		// printWiringError(PIN_BUZZER);
 	}
-	delay(500);
-	//se il collegamento riesce lo configuro già (da portare fuori successivamente)
-	configureSensor();
-	delay(500);
 }
 
-/*
-	Azzero la posizione della griglia di rifrazione
-*/
-void gratingMotorZeroPoint (const int sensMotPin, const int buzzerPin){
+// Azzero la posizione della griglia di rifrazione
+void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Grating Motor");
 	lcd.setCursor(0, 1); lcd.print("Homing...");
@@ -107,54 +117,51 @@ void gratingMotorZeroPoint (const int sensMotPin, const int buzzerPin){
 		// myMotor->step(1, BACKWARD, SINGLE); 
 	// }
 	//proseguo fintanto che non incontro lo zero macchina (quando la fotocellula vede la fessura nella "ruota fonica")
-	while(analogRead(sensMotPin)<=MOTOR_POSITIONSENSOR_THRESHOLD){
+	while(analogRead(sensMotCheckPin)<=MOTOR_POSITIONSENSOR_THRESHOLD){
 		myMotor->step(1, BACKWARD, SINGLE); 
 	}
 	//a questo punto torno indietro fino a che la mia superfice rifrangente non è perpendicolare al raggio della sorgente luminosa
 	myMotor->step(MOTOR_STEPS_MACHINEZERO, FORWARD, SINGLE);
 	tone(buzzerPin, 400, 500);
-}
-
-/*
-	funzione inutile se non per scrivere sullo schermo LCD. DA INCORPORARE CON QUELLA SOPRA
-*/
-void gratingMotorChecking (const int sensMotCheckPin, const int buzzerCheckPin){
-	gratingMotorZeroPoint(sensMotCheckPin, buzzerCheckPin);
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Motor Setted!");
 	lcd.setCursor(0, 1); lcd.print("Dgr.= 0'");
-	delay(500);
 }
 
-/*
-	verifico la scheda SD
-*/
-void SDCardChecking (const int chipSel){
+// funzione inutile se non per scrivere sullo schermo LCD. DA INCORPORARE CON QUELLA SOPRA
+// void gratingMotorChecking (const int sensMotCheckPin, const int buzzerCheckPin){
+	// gratingMotorZeroPoint(sensMotCheckPin, buzzerCheckPin);
+	// lcd.clear();
+	// lcd.setCursor(0, 0); lcd.print("Motor Setted!");
+	// lcd.setCursor(0, 1); lcd.print("Dgr.= 0'");
+	// delay(500);
+// }
+
+// verifico la scheda SD
+int SDCardChecking (const int chipSel){
 	lcd.clear();
 	lcd.setCursor(0, 0); lcd.print("Initializing");
 	lcd.setCursor(0, 1); lcd.print("SD card...");
 	delay(500);
-	if (!SD.begin(chipSel)) {
-		printWiringError(PIN_BUZZER);
-		delay(2500);
-		return;
+	if (SD.begin(chipSel)) {
+		lcd.clear();
+		lcd.setCursor(0, 0); lcd.print("Initialization");
+		lcd.setCursor(0, 1); lcd.print("DONE!!!");
+		delay(500);
+		return 0;
 	}
-	lcd.clear();
-	lcd.setCursor(0, 0); lcd.print("Initialization");
-	lcd.setCursor(0, 1); lcd.print("DONE!!!");
-	delay(500);
+	else{
+		printWiringError(PIN_BUZZER);
+		return 1;
+	}
 }
 
-/*
-	verifico che la lampada sia in funzione e che il relè cambi di stato.
-	Bisognerebbe gestire anche il punto in viene generato l'errore visto che utilizzo un array
-*/
-void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState, const int buzzerLCPin){
+// verifico che la lampada sia in funzione e che il relè cambi di stato.
+// Bisognerebbe gestire anche il punto in viene generato l'errore visto che utilizzo un array
+int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin){
+	int lampCheckingErrorSum=0;
 	int lampCheckingSensorVal=0;
-	int lampChecingkArray[3]={0,0,0};
-	lcd.clear();
-	lcd.setCursor(0, 0); lcd.print("Lamp");
-	lcd.setCursor(0, 1); lcd.print("Checking");
+	// int lampChecingkArray[3]={0,0,0};
 	//delay(2500);
 	/*
 	la logica dietro questo test è la seguente:
@@ -166,35 +173,36 @@ void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState
 	*/
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	lcd.print(".");
-	if(lampCheckingSensorVal>LAMP_CHECKINGSENSOR_THRESHOLD){
-		lampChecingkArray[0]=1;
+	if(lampCheckingSensorVal<LAMP_CHECKINGSENSOR_THRESHOLD){
+		// lampChecingkArray[0]=1;
+		lampCheckingErrorSum+=LAMP_CHECK_ERROR_PHASE_1;
 	}
-	(*lampState)=LOW;
-	digitalWrite(lampStatePin, (*lampState));
+	lampState=LOW;
+	digitalWrite(lampStatePin, lampState);
+	delay(LAMP_CHECKING_TIMEBREAK);
+	lampCheckingSensorVal=analogRead(lampSensPin);
+	lcd.print(".");
+	if(lampCheckingSensorVal>LAMP_CHECKINGSENSOR_THRESHOLD){
+		// lampChecingkArray[1]=1;
+		lampCheckingErrorSum+=LAMP_CHECK_ERROR_PHASE_2;
+	}
+	lampState=HIGH;
+	digitalWrite(lampStatePin, lampState);
 	delay(LAMP_CHECKING_TIMEBREAK);
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	lcd.print(".");
 	if(lampCheckingSensorVal<LAMP_CHECKINGSENSOR_THRESHOLD){
-		lampChecingkArray[1]=0;
+		// lampChecingkArray[2]=1;
+		lampCheckingErrorSum+=LAMP_CHECK_ERROR_PHASE_3;
 	}
-	(*lampState)=HIGH;
-	digitalWrite(lampStatePin, (*lampState));
-	delay(LAMP_CHECKING_TIMEBREAK);
-	lampCheckingSensorVal=analogRead(lampSensPin);
-	lcd.print(".");
-	if(lampCheckingSensorVal>LAMP_CHECKINGSENSOR_THRESHOLD){
-		lampChecingkArray[2]=1;
-	}
-	delay(LAMP_CHECKING_TIMEBREAK);
-	if(lampChecingkArray[0]&&(!lampChecingkArray[1])&&lampChecingkArray[2]){
-		lcd.clear();
-		lcd.setCursor(0, 0); lcd.print("Lamp ");
-		lcd.setCursor(0, 1); lcd.print("is OK!!");
+	if(lampCheckingErrorSum==LAMP_CHECK_PASSED){
+		return LAMP_CHECK_PASSED;
 	}
 	else{
-		printWiringError(buzzerLCPin);
+		return lampCheckingErrorSum;
+		// printWiringError(buzzerLCPin);
 	}
-	delay(2500);
+	delay(1500);
 }
 
 /*
@@ -213,20 +221,21 @@ void lampChecking (const int lampSensPin, const int lampStatePin, int* lampState
 	// Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
 	// m_readsVal=x;
 // }
+// int simpleRead(int tslReadType){
 uint16_t simpleRead(int tslReadType){
 	switch(tslReadType){
 		case(TSL_READTYPE_VISIBLE):{
 			return tsl.getLuminosity(TSL2591_VISIBLE);
 			break;
 		}
-		// case(TSL_READTYPE_FULLSPECTRUM):{
-			// return tsl.getLuminosity(TSL2561_FULLSPECTRUM);
-			// break;
-		// }
-		// case(TSL_READTYPE_INFRARED):{
-			// return tsl.getLuminosity(TSL2561_INFRARED);
-			// break;
-		// }
+		case(TSL_READTYPE_FULLSPECTRUM):{
+			return tsl.getLuminosity(TSL2591_FULLSPECTRUM);
+			break;
+		}
+		case(TSL_READTYPE_INFRARED):{
+			return tsl.getLuminosity(TSL2591_INFRARED);
+			break;
+		}
 	}
 }
 
@@ -253,5 +262,9 @@ void backgroundSensor(void){
 		delay(2500);
 	}
 }
+
+// ========================================== OLD ==========================================
+// int simpleRead(void);
+// int simpleRead(int tslReadType);
 
 #endif
