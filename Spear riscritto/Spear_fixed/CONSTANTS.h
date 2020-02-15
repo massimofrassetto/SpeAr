@@ -6,7 +6,7 @@
 // Informazioni interne della macchina
 
 #define MODEL_VERSION						1.0
-#define FIRMWARE_VERSION					13.3
+#define FIRMWARE_VERSION					13.4
 
 
 // velocità della comunicazione seriale
@@ -15,6 +15,18 @@
 // ======== PARAMETRI PER GESTIRE IL SENSORE TSL ========
 #define TSL_CONNECTION_DONE					0
 #define TSL_CONNECTION_FAILED				1
+
+#define TSL_GAIN_LOW						0
+#define TSL_GAIN_MED						1
+#define TSL_GAIN_HIGH						2
+#define TSL_GAIN_MAX						3
+
+#define TSL_INTEGRATIONTIME_100ms			0
+#define TSL_INTEGRATIONTIME_200ms			1
+#define TSL_INTEGRATIONTIME_300ms			2
+#define TSL_INTEGRATIONTIME_400ms			3
+#define TSL_INTEGRATIONTIME_500ms			4
+#define TSL_INTEGRATIONTIME_600ms			5
 
 #define TSL_READTYPE_VISIBLE				0
 #define TSL_READTYPE_FULLSPECTRUM			1
@@ -61,6 +73,7 @@
 #define PIN_KEYPAD_COLS_0 					34
 #define PIN_KEYPAD_COLS_1 					33
 #define PIN_KEYPAD_COLS_2 					32
+#define KEYPAD_ANTIDEBUNCEFILTER			100
 
 // Pin del piezo/Buzzer
 #define PIN_BUZZER 							46

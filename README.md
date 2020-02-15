@@ -23,4 +23,4 @@ TODO
 - Gestire impostazioni utente e salvarle su file
 - Gestire le serial.print di debug in modo che in caso di una futura comunicazione con il pc vengano marcate come DEBUG E QUINDI SCARTATE.		
 - verificare logica di controllo dei pulsanti per evitare falsi click
-- Azzerare il motore soltanto prima di utilizzarlo. È inutile farlo appena partito.
+- inserire filtraggio per la media delle letture (tsl) per valori totalmente scazzati (esempio prima lettura)
