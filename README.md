@@ -12,7 +12,7 @@ If you wish you can also send me some material or other documentation that I wil
 `Thank you for understanding!`
 
 ## Documentation and Wiki
-All the documentation sections are still "Work In Progress". For the moment i can only give my thesis (in Italian). 
+All the documentation sections are still "Work In Progress". For the moment i can only give my thesis (in Italian).
 * https://drive.google.com/open?id=1wMpfqE4ke-pRUaybfkaCi_CKb389sP8Q
 
 The description of the various functions can be found directly in the source. There is not yet a purpose-built library.
@@ -25,7 +25,7 @@ In the future I will also insert the procedure and the wiring diagram so that yo
 	* Wire
 	* SPI
 	* SD
-* Custom 
+* Custom
 	* From Mark Stanley, Alexander Brevig:
 		* Keypad
 			* Arduinio Playround reference : 	https://playground.arduino.cc/Code/Keypad/
