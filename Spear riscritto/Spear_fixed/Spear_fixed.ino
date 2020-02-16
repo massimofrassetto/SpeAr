@@ -40,7 +40,7 @@ char hexaKeys[ROWS][COLS] = {
 };
 byte rowPins[ROWS] = {PIN_KEYPAD_ROW_0, PIN_KEYPAD_ROW_1, PIN_KEYPAD_ROW_2, PIN_KEYPAD_ROW_3};
 byte colPins[COLS] = {PIN_KEYPAD_COLS_0, PIN_KEYPAD_COLS_1, PIN_KEYPAD_COLS_2};
-Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
+Keypad m_customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 char m_customKey;
 String m_keyPadString;
 
@@ -168,6 +168,10 @@ void setup(void){
 	#endif
 	tslConfigureSensor(&m_tsl, TSL_GAIN_MAX, TSL_INTEGRATIONTIME_300ms);
 	#ifdef DEBUG_SERIAL
+		Serial.println(">> Configuring Keypad...");
+	#endif
+	m_customKeypad.setDebounceTime(KEYPAD_ANTIDEBUNCEFILTER_TIME);
+	#ifdef DEBUG_SERIAL
 		Serial.println("===================================================================");
 		Serial.println("===================== Initialization COMPLETED ====================");
 		Serial.print("============================= "); Serial.print(millis()/1000.0, 3); Serial.println("s ==============================");
@@ -269,8 +273,8 @@ void loop(void){
 					while(!m_okVal){
 						m_okVal=digitalRead(PIN_BUTTON_OK);
 						m_customKey=0;
-						m_customKey=customKeypad.getKey();
-						delay(KEYPAD_ANTIDEBUNCEFILTER);
+						m_customKey=m_customKeypad.getKey();
+						// delay(KEYPAD_ANTIDEBUNCEFILTER);
 						if(m_customKey){
 							m_keyPadString+=m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set Val: " + m_keyPadString);
@@ -310,8 +314,8 @@ void loop(void){
 					while(!m_okVal){
 						m_okVal=digitalRead(PIN_BUTTON_OK);
 						m_customKey=0;
-						m_customKey = customKeypad.getKey();
-						delay(100);
+						m_customKey = m_customKeypad.getKey();
+						// delay(100);
 						if(m_customKey){
 							m_keyPadString+=m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("n: " + m_keyPadString);
@@ -464,8 +468,8 @@ void loop(void){
 					m_keyPadString="";
 					while(m_okVal==LOW){
 						m_customKey=0;
-						m_customKey = customKeypad.getKey();
-						delay(100);
+						m_customKey = m_customKeypad.getKey();
+						// delay(100);
 						if(m_customKey){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set MIN:  " + m_keyPadString);
@@ -482,8 +486,8 @@ void loop(void){
 					m_keyPadString="";
 					while(m_okVal==LOW){
 						m_customKey=0;
-						m_customKey = customKeypad.getKey();
-						delay(100);
+						m_customKey = m_customKeypad.getKey();
+						// delay(100);
 						if(m_customKey){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set MAX:  " + m_keyPadString);
@@ -509,8 +513,8 @@ void loop(void){
 					m_keyPadString="";
 					while(m_okVal==LOW){
 						m_customKey=0;
-						m_customKey = customKeypad.getKey();
-						delay(100);
+						m_customKey = m_customKeypad.getKey();
+						// delay(100);
 						if(m_customKey){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("n:  " + m_keyPadString);

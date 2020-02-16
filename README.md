@@ -1,26 +1,26 @@
-# !!CIAO!!
-**MI CHIAMO MASSIMO FRASSETTO E SONO L'IDEATORE DI QUESTO PROGETTO.**
+# Spectrophotometer with Arduino
+Shortname (Spe.Ar.)
 
-**PURTROPPO PER TE CHE STAI NAVIGANDO, QUESTO GIT È TOTALMENTE "WORK IN PROGRESS"!!**
+## Welcome to this repository
 
-Purtroppo per me è possibile lavorarci durante il tempo libero per cui ci vorrà tempo...
-
-È un progetto senza particolari aspettative e in continuo miglioramento. So benissimo che c'è molto da migliorare, sistemare, definire o fare in modo più efficace ma come ho detto è un progetto personale, non il mio lavoro.
-Se pensi che qualcosa possa essere migliorato o hai voglia di aiutarmi scrivimi pure per email, ti risponderò il prima possibile: frassetto.massimoo@gmail.com
+**Hey Folks!** My name is Massimo Frassetto and this is my repository where you can find a simple firmware for my final Exam project on 2015. 
 
 
-### Appunti temporanei
+### Libraris you may need
 
-TODO
-
-- `SCRIVERE O TROVARE UNA LIBRERIA PER UNA SORTA DI TRACELOG`.
-- Gestire le funzioni in modo che
-	- non siano più legate alle variabili globali
-	- siano pacchettizzate e riutilizzabili
-	- variabili di ritorno
-- Cercare o scrivere una libreria che renda semplice il calcolo della regressione lineare
-	- https://github.com/cubiwan/LinearRegressino
-- Gestire impostazioni utente e salvarle su file
-- Gestire le serial.print di debug in modo che in caso di una futura comunicazione con il pc vengano marcate come DEBUG E QUINDI SCARTATE.		
-- verificare logica di controllo dei pulsanti per evitare falsi click
-- inserire filtraggio per la media delle letture (tsl) per valori totalmente scazzati (esempio prima lettura)
+* Default (already present on Arduino IDE)
+	* LiquidCrystal
+	* Wire
+	* SPI
+	* SD
+* Custom 
+	* From Mark Stanley, Alexander Brevig:
+		* Keypad
+			* Arduinio Playround reference : 	https://playground.arduino.cc/Code/Keypad/
+			* Direct Github link: 				https://github.com/Chris--A/Keypad
+	* From Adafruit Industries (https://www.adafruit.com/):
+		* Light Sensor:
+			* Adafruit_TSL2591: 				https://github.com/adafruit/Adafruit_TSL2591_Library
+			* Adafruit_Sensor:					https://github.com/adafruit/Adafruit_Sensor
+		* MotorShield:
+			* Adafruit_MotorShield: 			https://github.com/adafruit/Adafruit_Motor_Shield_V2_Library

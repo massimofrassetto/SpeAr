@@ -6,7 +6,7 @@
 // Informazioni interne della macchina
 
 #define MODEL_VERSION						1.0
-#define FIRMWARE_VERSION					13.4
+#define FIRMWARE_VERSION					13.5
 
 
 // velocità della comunicazione seriale
@@ -73,7 +73,7 @@
 #define PIN_KEYPAD_COLS_0 					34
 #define PIN_KEYPAD_COLS_1 					33
 #define PIN_KEYPAD_COLS_2 					32
-#define KEYPAD_ANTIDEBUNCEFILTER			100
+#define KEYPAD_ANTIDEBUNCEFILTER_TIME		150
 
 // Pin del piezo/Buzzer
 #define PIN_BUZZER 							46
