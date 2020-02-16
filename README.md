@@ -1,4 +1,4 @@
-# Spectrophotometer with Arduino
+# Spectrophotometer with Arduino [![Build Status](https://travis-ci.com/massimofrassetto/SpeAr.svg?branch=master)](https://travis-ci.com/massimofrassetto/Spear)
 Shortname (Spe.Ar.)
 
 ## Welcome to this repository
