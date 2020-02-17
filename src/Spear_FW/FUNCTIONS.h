@@ -13,28 +13,33 @@ void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integra
 void printWiringError(const int alarmPin, LiquidCrystal myLcd);
 void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin, LiquidCrystal myLcd);
 void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
-int SDCardChecking(const int chipSel, LiquidCrystal myLcd);
+int SDCardChecking(const int chipSel);
 int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin, LiquidCrystal myLcd);
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType);
 void backgroundSensor(LiquidCrystal myLcd, File myFile);
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonRelease(int pinButton, int* buttonVal);
 
+// void SDinfo();
+
+// void serialTest(String myString);
 
 // =========================================================================================
 // ======================================= FUNZIONI ========================================
 // =========================================================================================
 
+// void serialTest(String myString){
+	// #ifdef SERIAL_OUTPUT
+		// Serial.print(myString);
+	// #endif
+// }
+
 void serialSendInstrumentDetalis(void){
-	Serial.println("[===================================================================]");
-	Serial.println("|========================= STARTING SYSTEM =========================|");
-	Serial.println("|===================================================================|");
 	Serial.print("|\t#Product Name:\t\t\t"); 			Serial.println(INSTRUMENT_NAME);
 	Serial.print("|\t#Model:\t\t\t\t"); 				Serial.println(MODEL_VERSION);
 	Serial.print("|\t#Firmware:\t\t\t"); 				Serial.println(FIRMWARE_VERSION);
 	Serial.print("|\t#Autor Name:\t\t\t"); 			Serial.println(AUTOR_NAME);
 	Serial.print("|\t#Email:\t\t\t\t"); 				Serial.println(AUTOR_EMAIL);
-	Serial.println("[===================================================================]");
 }
 
 void waitingButtonRelease(int pinButton, int *buttonVal){
@@ -128,15 +133,15 @@ void printWiringError (const int alarmPin, LiquidCrystal myLcd){
 
 // Verifico che la comunicazione con il sensore tsl sia funzionante
 int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd){
-	myLcd.clear();
-	myLcd.setCursor(0, 0); myLcd.print("Checking TSL...");
+	// myLcd.clear();
+	// myLcd.setCursor(0, 0); myLcd.print("Checking TSL...");
 	if ((*myTsl).begin()){
-		myLcd.setCursor(0, 1); myLcd.print("	OK!");
+		// myLcd.setCursor(0, 1); myLcd.print("	OK!");
 		return TSL_CONNECTION_DONE;
 	} 
 	else{
 		return TSL_CONNECTION_FAILED;
-		// printWiringError(PIN_BUZZER);
+		// printWiringError(BUZZER_PIN);
 	}
 }
 
@@ -172,23 +177,71 @@ void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, Liqu
 // }
 
 // verifico la scheda SD
-int SDCardChecking (const int chipSel, LiquidCrystal myLcd){
-	myLcd.clear();
-	myLcd.setCursor(0, 0); myLcd.print("Initializing");
-	myLcd.setCursor(0, 1); myLcd.print("SD card...");
-	delay(500);
+int SDCardChecking (const int chipSel){
+	// delay(1);
 	if (SD.begin(chipSel)) {
-		myLcd.clear();
-		myLcd.setCursor(0, 0); myLcd.print("Initialization");
-		myLcd.setCursor(0, 1); myLcd.print("DONE!!!");
-		delay(500);
-		return 0;
+		Serial.print("si");
+		return SD_CONNECTION_DONE;
 	}
 	else{
-		printWiringError(PIN_BUZZER, myLcd);
-		return 1;
+		Serial.print("no");
+		return SD_CONNECTION_FAILED;
 	}
+	Serial.print("forse");
 }
+
+// void SDinfo(){
+	// //==========================================================================================================================================
+	// Serial.print("Card type:         ");
+	// switch (card.type()) {
+		// case SD_CARD_TYPE_SD1:
+			// Serial.println("SD1");
+			// break;
+		// case SD_CARD_TYPE_SD2:
+			// Serial.println("SD2");
+			// break;
+		// case SD_CARD_TYPE_SDHC:
+			// Serial.println("SDHC");
+			// break;
+		// default:
+			// Serial.println("Unknown");
+	// }
+	// if (!volume.init(card)) {
+		// Serial.println("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card");
+		// // while (1);
+	// }
+	// Serial.print("Clusters:          ");
+	// Serial.println(volume.clusterCount());
+	// Serial.print("Blocks x Cluster:  ");
+	// Serial.println(volume.blocksPerCluster());
+	
+	// Serial.print("Total Blocks:      ");
+	// Serial.println(volume.blocksPerCluster() * volume.clusterCount());
+	// Serial.println();
+
+	// // print the type and size of the first FAT-type volume
+	// uint32_t volumesize;
+	// Serial.print("Volume type is:    FAT");
+	// Serial.println(volume.fatType(), DEC);
+	
+	// volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
+	// volumesize *= volume.clusterCount();       // we'll have a lot of clusters
+	// volumesize /= 2;                           // SD card blocks are always 512 bytes (2 blocks are 1KB)
+	// Serial.print("Volume size (Kb):  ");
+	// Serial.println(volumesize);
+	// Serial.print("Volume size (Mb):  ");
+	// volumesize /= 1024;
+	// Serial.println(volumesize);
+	// Serial.print("Volume size (Gb):  ");
+	// Serial.println((float)volumesize / 1024.0);
+
+	// Serial.println("\nFiles found on the card (name, date and size in bytes): ");
+	// root.openRoot(volume);
+
+	// // list all files in the card with date and size
+	// root.ls(LS_R | LS_DATE | LS_SIZE);
+	// //==========================================================================================================================================
+// }
 
 // verifico che la lampada sia in funzione e che il relè cambi di stato.
 // Bisognerebbe gestire anche il punto in viene generato l'errore visto che utilizzo un array

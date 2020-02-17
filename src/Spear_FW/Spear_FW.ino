@@ -1,6 +1,7 @@
 /* PROGRAMMA PRINCIPALE */
 
 #define DEBUG_SERIAL
+// #define SERIAL_OUTPUT
 
 #include <LiquidCrystal.h>
 
@@ -25,7 +26,11 @@ Adafruit_TSL2591 m_tsl = Adafruit_TSL2591(ADAFRUIT_SENSOR_IDENTIFIER); // pass i
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 Adafruit_StepperMotor *m_grtMotor = AFMS.getStepper(MOTOR_STEPS_PER_REVOLUTION, MOTOR_PORT);
 
-LiquidCrystal m_lcd(PIN_LCD_RS, PIN_LCD_ENABLE, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
+LiquidCrystal m_lcd(LCD_PIN_RS, LCD_PIN_ENABLE, LCD_PIN_D4, LCD_PIN_D5, LCD_PIN_D6, LCD_PIN_D7);
+
+// Sd2Card card;
+// SdVolume volume;
+// SdFile root;
 
 File m_allSpectrumFile;
 File m_traceLog;
@@ -38,8 +43,8 @@ char hexaKeys[ROWS][COLS] = {
 	{'7','8','9'},
 	{'*','0','#'}
 };
-byte rowPins[ROWS] = {PIN_KEYPAD_ROW_0, PIN_KEYPAD_ROW_1, PIN_KEYPAD_ROW_2, PIN_KEYPAD_ROW_3};
-byte colPins[COLS] = {PIN_KEYPAD_COLS_0, PIN_KEYPAD_COLS_1, PIN_KEYPAD_COLS_2};
+byte rowPins[ROWS] = {KEYPAD_PIN_ROW_0, KEYPAD_PIN_ROW_1, KEYPAD_PIN_ROW_2, KEYPAD_PIN_ROW_3};
+byte colPins[COLS] = {KEYPAD_PIN_COLS_0, KEYPAD_PIN_COLS_1, KEYPAD_PIN_COLS_2};
 Keypad m_customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 char m_customKey;
 String m_keyPadString;
@@ -76,15 +81,21 @@ int m_allSpectrumScanID=0;
 
 
 void setup(void){
-	tone(PIN_BUZZER, 500, 100); delay(100);
-	tone(PIN_BUZZER, 300, 200); delay(100);
-	tone(PIN_BUZZER, 500, 400); delay(4300);
+	tone(BUZZER_PIN, 500, 100); delay(100);
+	tone(BUZZER_PIN, 300, 200); delay(100);
+	tone(BUZZER_PIN, 500, 400); delay(4300);
 	Serial.begin(SERIAL_BAUDRATE);
 	while (!Serial) {
 		; // wait for serial port to connect. Needed for native USB port only
 	}
+	// serialTest("TEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEST\n");
 	#ifdef DEBUG_SERIAL
+		Serial.println("[===================================================================]");
+		Serial.println("|========================= STARTING SYSTEM =========================|");
+		Serial.println("|===================================================================|");
 		serialSendInstrumentDetalis();
+		Serial.println("[===================================================================]");
+		Serial.println("=================== Initializing Connected Devices ==================");
 	#endif
 	m_lcd.begin(LCD_COLS, LCD_ROWS);
 	#ifdef DEBUG_SERIAL
@@ -92,14 +103,14 @@ void setup(void){
 	#endif
 	m_lcd.setCursor(0, 0); m_lcd.print("Spe.Ar. Project");
 	m_lcd.setCursor(0, 1); m_lcd.print("V "); m_lcd.print(MODEL_VERSION); m_lcd.print(" SW "); m_lcd.print(FIRMWARE_VERSION);
-	pinMode(PIN_BUTTON_OK, 				INPUT);
-	pinMode(PIN_BUTTON_BACK, 			INPUT);
-	pinMode(PIN_BUTTON_NEXT, 			INPUT);
-	pinMode(PIN_BUTTON_UP, 				INPUT);
-	pinMode(PIN_BUTTON_DOWN, 			INPUT);
-	pinMode(PIN_LAMP_CHECKINGSENSOR, 	INPUT);
-	pinMode(PIN_LAMP_SWITCH, 			OUTPUT);
-	digitalWrite(PIN_LAMP_SWITCH, 		HIGH);
+	pinMode(BUTTON_PIN_OK, 				INPUT);
+	pinMode(BUTTON_PIN_BACK, 			INPUT);
+	pinMode(BUTTON_PIN_NEXT, 			INPUT);
+	pinMode(BUTTON_PIN_UP, 				INPUT);
+	pinMode(BUTTON_PIN_DOWN, 			INPUT);
+	pinMode(LAMP_PIN_CHECKINGSENSOR, 	INPUT);
+	pinMode(LAMP_PIN_SWITCH, 			OUTPUT);
+	digitalWrite(LAMP_PIN_SWITCH, 		HIGH);
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> I/O Inizializated;");
 	#endif
@@ -112,44 +123,61 @@ void setup(void){
 	m_lcd.setCursor(0, 1); m_lcd.print("Instrument...");
 	delay(500);
 	#ifdef DEBUG_SERIAL
-		Serial.println(">> Creating SD Card connection...\t");
-	#endif
-	SDCardChecking(CHIPSELECT, m_lcd);
-	#ifdef DEBUG_SERIAL
-		Serial.print(">> Creating TSL Sensor connection...\t");
+		Serial.print(">> Creating SD Card connection...\t");
 	#endif
 	m_lcd.clear();
-	m_lcd.setCursor(0, 0); m_lcd.print("Checking TSL...");
-	if(tslSensorInitializationConnection(&m_tsl, m_lcd)==TSL_CONNECTION_DONE){
-		m_lcd.setCursor(0, 1); m_lcd.print("	OK!");
+	m_lcd.setCursor(0, 0); m_lcd.print("Initializing");
+	m_lcd.setCursor(0, 1); m_lcd.print("SD card...");
+	if(SDCardChecking(SD_CHIPSELECT)==SD_CONNECTION_DONE){
 		#ifdef DEBUG_SERIAL
 			Serial.println("Established");
 		#endif
+		m_lcd.print("OK!");
 	}
 	else{
 		#ifdef DEBUG_SERIAL
 			Serial.println("Failed");
 		#endif
-		printWiringError(PIN_BUZZER, m_lcd);
+		m_lcd.print("ERR!");
+		printWiringError(BUZZER_PIN, m_lcd);
+	}
+	// SDinfo();
+	#ifdef DEBUG_SERIAL
+		Serial.print(">> Creating TSL Sensor connection...\t");
+	#endif
+	m_lcd.clear();
+	m_lcd.setCursor(0, 0); m_lcd.print("Init.ing TSL...");
+	if(tslSensorInitializationConnection(&m_tsl, m_lcd)==TSL_CONNECTION_DONE){
+		#ifdef DEBUG_SERIAL
+			Serial.println("Established");
+		#endif
+		m_lcd.setCursor(0, 1); m_lcd.print("	OK!");
+	}
+	else{
+		#ifdef DEBUG_SERIAL
+			Serial.println("Failed");
+		#endif
+		m_lcd.setCursor(0, 1); m_lcd.print("	FAILED!");
+		printWiringError(BUZZER_PIN, m_lcd);
 	}
 	serialDisplaySensorDetails(&m_tsl);
 	#ifdef DEBUG_SERIAL
-		Serial.println("======================= Starting Instrument =======================");
+		Serial.println("=================== Configuring Connected Devices ===================");
+	#endif
+	#ifdef DEBUG_SERIAL
+		Serial.print(">> Speed Motor Configured:\t\t"); Serial.print(MOTOR_SPEED_RPM); Serial.println("rpm");
 	#endif
 	m_grtMotor->setSpeed(MOTOR_SPEED_RPM);
-	#ifdef DEBUG_SERIAL
-		Serial.println(">> Motor Configured;");
-	#endif
 	#ifdef DEBUG_SERIAL
 		Serial.print(">> Checking Lamp...\t\t\t");
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Lamp");
 	m_lcd.setCursor(0, 1); m_lcd.print("Checking");
-	m_lampCheckingResult=lampChecking(PIN_LAMP_CHECKINGSENSOR, PIN_LAMP_SWITCH, m_lampSwitchVal, PIN_BUZZER, m_lcd);
+	m_lampCheckingResult=lampChecking(LAMP_PIN_CHECKINGSENSOR, LAMP_PIN_SWITCH, m_lampSwitchVal, BUZZER_PIN, m_lcd);
 	if(m_lampCheckingResult==LAMP_CHECK_PASSED){
 		#ifdef DEBUG_SERIAL
-			Serial.println("OK");
+			Serial.println("WORKING");
 		#endif
 		m_lcd.setCursor(0, 1); m_lcd.print("is OK!!         ");
 	}
@@ -160,8 +188,8 @@ void setup(void){
 		m_lcd.clear();
 		m_lcd.setCursor(0, 0); m_lcd.print("!!ERRORE!!");
 		m_lcd.setCursor(0, 1); m_lcd.print("Bin code: "); m_lcd.print(String(m_lampCheckingResult));
-		tone(PIN_BUZZER, 400, 1000); delay(500);
-		tone(PIN_BUZZER, 400, 1000);
+		tone(BUZZER_PIN, 400, 1000); delay(500);
+		tone(BUZZER_PIN, 400, 1000);
 	}
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> Configuring TSL Sensor...");
@@ -169,6 +197,7 @@ void setup(void){
 	tslConfigureSensor(&m_tsl, TSL_GAIN_MAX, TSL_INTEGRATIONTIME_300ms);
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> Configuring Keypad...");
+		Serial.print("|\t#Product Name:\t\t\t"); 			Serial.println(KEYPAD_ANTIDEBUNCEFILTER_TIME);
 	#endif
 	m_customKeypad.setDebounceTime(KEYPAD_ANTIDEBUNCEFILTER_TIME);
 	#ifdef DEBUG_SERIAL
@@ -179,20 +208,18 @@ void setup(void){
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Instrument");
 	m_lcd.setCursor(0, 1); m_lcd.print("is Ready!!!!");			//Migliorare l'effetto felice, ora sembra che semplicemente funzioni male
-	tone(PIN_BUZZER, 600, 200); delay(200);
-	tone(PIN_BUZZER, 600, 200); delay(100);
-	tone(PIN_BUZZER, 900, 400); delay(1000);
-	// m_lcd.noDisplay();	delay(500);
-	// m_lcd.display();		delay(2000);
+	tone(BUZZER_PIN, 600, 200); delay(200);
+	tone(BUZZER_PIN, 600, 200); delay(100);
+	tone(BUZZER_PIN, 900, 400); delay(1000);
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Press 'OK'");
 	m_lcd.setCursor(0, 1); m_lcd.print("to Start...");
 	while(!m_okVal){
-		m_okVal=digitalRead(PIN_BUTTON_OK);
+		m_okVal=digitalRead(BUTTON_PIN_OK);
 	}
-	waitingButtonRelease(PIN_BUTTON_OK, &m_okVal);
+	waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
 	#ifdef DEBUG_SERIAL
-		Serial.println(">> Entering Selection Mode Menu");
+		Serial.println(">> Entering 'Selection Mode' Menu");
 	#endif
 	delay(200);
 }
@@ -209,10 +236,10 @@ void loop(void){
 		3	-	CONCANALYSIS
 	*/
 	while(!m_okVal && !m_backVal){
-		m_okVal=	digitalRead(PIN_BUTTON_OK);
-		m_backVal=	digitalRead(PIN_BUTTON_BACK);
-		m_upVal=	digitalRead(PIN_BUTTON_UP);
-		m_downVal=	digitalRead(PIN_BUTTON_DOWN);
+		m_okVal=	digitalRead(BUTTON_PIN_OK);
+		m_backVal=	digitalRead(BUTTON_PIN_BACK);
+		m_upVal=	digitalRead(BUTTON_PIN_UP);
+		m_downVal=	digitalRead(BUTTON_PIN_DOWN);
 		if(!m_upVal&&m_downVal){
 			if(m_indexAnalysisMode>=2){
 				m_indexAnalysisMode=0;
@@ -221,7 +248,7 @@ void loop(void){
 				m_indexAnalysisMode++;
 			}
 			while(m_downVal){
-				m_downVal=digitalRead(PIN_BUTTON_DOWN);
+				m_downVal=digitalRead(BUTTON_PIN_DOWN);
 			}
 			m_refreshScreen=true;
 		}
@@ -233,7 +260,7 @@ void loop(void){
 				m_indexAnalysisMode--;
 			}
 			while(m_upVal){
-				m_upVal=digitalRead(PIN_BUTTON_UP);
+				m_upVal=digitalRead(BUTTON_PIN_UP);
 			}
 			m_refreshScreen=true;
 		}
@@ -243,7 +270,7 @@ void loop(void){
 			m_refreshScreen=false;
 		}
 	}
-	waitingButtonRelease(PIN_BUTTON_OK, &m_okVal);
+	waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
 	// m_okVal=0;
 	delay(200);
 	#ifdef DEBUG_SERIAL
@@ -256,13 +283,13 @@ void loop(void){
 			m_lcd.setCursor(0, 0); m_lcd.print("Simple Read");
 			m_lcd.setCursor(0, 1); m_lcd.print("selected?");
 			while(!m_okVal && !m_backVal){
-				m_okVal=digitalRead(PIN_BUTTON_OK);
-				m_backVal=digitalRead(PIN_BUTTON_BACK);
+				m_okVal=digitalRead(BUTTON_PIN_OK);
+				m_backVal=digitalRead(BUTTON_PIN_BACK);
 				if(m_okVal){
 					#ifdef DEBUG_SERIAL
 						Serial.println(">> Simple Read Selected!");
 					#endif
-					waitingButtonRelease(PIN_BUTTON_OK, &m_okVal);
+					waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
 					m_lcd.clear();
 					m_lcd.setCursor(0, 0); m_lcd.print("Lambda (nm): ");
 					m_lcd.setCursor(0, 1); m_lcd.print("Set Val: ");
@@ -271,7 +298,7 @@ void loop(void){
 					#endif
 					m_keyPadString="";
 					while(!m_okVal){
-						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
 						m_customKey=0;
 						m_customKey=m_customKeypad.getKey();
 						// delay(KEYPAD_ANTIDEBUNCEFILTER);
@@ -283,7 +310,7 @@ void loop(void){
 							#endif
 						}
 					}
-					waitingButtonRelease(PIN_BUTTON_OK, &m_okVal);
+					waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
 					#ifdef DEBUG_SERIAL
 						Serial.println();
 					#endif
@@ -301,7 +328,7 @@ void loop(void){
 							Serial.print(">> Lambda can't be higher then "); Serial.print(SPECTRALIMIT_HIGH); Serial.print("nm. Corrected to that value. Requested was "); Serial.println(m_lambdaRequested); 
 						}
 						else{
-							Serial.println(">> Lambda Acceptded!!");
+							Serial.println(">> - Lambda Acceptded!!");
 						}
 					#endif
 					m_lcd.clear();
@@ -312,7 +339,7 @@ void loop(void){
 					#endif
 					m_keyPadString="";
 					while(!m_okVal){
-						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
 						m_customKey=0;
 						m_customKey = m_customKeypad.getKey();
 						// delay(100);
@@ -324,7 +351,7 @@ void loop(void){
 							#endif
 						}
 					}
-					waitingButtonRelease(PIN_BUTTON_OK, &m_okVal);
+					waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
 					#ifdef DEBUG_SERIAL
 						Serial.println();
 					#endif
@@ -338,7 +365,7 @@ void loop(void){
 					else{
 						m_nReadsCorrected=m_nReadsRequested;
 						#ifdef DEBUG_SERIAL
-							Serial.println(">> Replicates Acceptded!!");
+							Serial.println(">> - Replicates Acceptded!!");
 						#endif
 					}
 					#ifdef DEBUG_SERIAL
@@ -348,7 +375,7 @@ void loop(void){
 					m_lcd.setCursor(0, 0); m_lcd.print("Replicates: " + String(m_nReadsCorrected));
 					m_lcd.setCursor(0, 1); m_lcd.print("Pos.ing motor...");
 					m_gratingMotorFutureSteps=map(m_lambdaCorrected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH, MOTOR_STEPS_GRATINGLIMIT_HIGH, MOTOR_STEPS_GRATINGLIMIT_LOW);
-					gratingMotorZeroPoint(PIN_MOTOR_POSITIONSENSOR, PIN_BUZZER, m_lcd, m_grtMotor);			//serve davvero?
+					gratingMotorZeroPoint(MOTOR_PIN_POSITIONSENSOR, BUZZER_PIN, m_lcd, m_grtMotor);			//serve davvero?
 					m_grtMotor->step(m_gratingMotorFutureSteps, FORWARD, MOTOR_STEPTYPE);
 					m_grtMotor->release();
 					#ifdef DEBUG_SERIAL
@@ -359,7 +386,7 @@ void loop(void){
 					m_lcd.setCursor(0, 1); m_lcd.print("AutoZero");
 					//rivedere
 					while(!m_okVal){
-						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
 					}
 					m_okVal=LOW;
 					#ifdef DEBUG_SERIAL
@@ -391,8 +418,8 @@ void loop(void){
 					#endif
 					delay(200);
 					while(!m_okVal && !m_backVal){
-						m_okVal=digitalRead(PIN_BUTTON_OK);
-						m_backVal=digitalRead(PIN_BUTTON_BACK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
+						m_backVal=digitalRead(BUTTON_PIN_BACK);
 						if(m_okVal){
 							m_okVal=LOW;
 							#ifdef DEBUG_SERIAL
@@ -457,8 +484,8 @@ void loop(void){
 			m_lcd.setCursor(0, 0); m_lcd.print("All Spectrum");
 			m_lcd.setCursor(0, 1); m_lcd.print("selected?");
 			while(!m_okVal && !m_backVal){
-				m_okVal=digitalRead(PIN_BUTTON_OK);
-				m_backVal=digitalRead(PIN_BUTTON_BACK);
+				m_okVal=digitalRead(BUTTON_PIN_OK);
+				m_backVal=digitalRead(BUTTON_PIN_BACK);
 				if(m_okVal){
 					m_okVal=LOW;
 					delay(1000);
@@ -474,7 +501,7 @@ void loop(void){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set MIN:  " + m_keyPadString);
 						}
-						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
 					}
 					m_lambdaRequested=m_keyPadString.toInt();
 					m_lambdaMin=constrain(m_lambdaRequested, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
@@ -492,7 +519,7 @@ void loop(void){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set MAX:  " + m_keyPadString);
 						}
-						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
 					}
 					m_lambdaRequested=m_keyPadString.toInt();
 					m_lambdaMax=constrain(m_lambdaRequested, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
@@ -505,7 +532,7 @@ void loop(void){
 					m_lcd.clear();
 					m_lcd.setCursor(0, 0); m_lcd.print("Grating Motor");
 					m_lcd.setCursor(0, 1); m_lcd.print("Zero setting...");
-					gratingMotorZeroPoint(PIN_MOTOR_POSITIONSENSOR, PIN_BUZZER, m_lcd, m_grtMotor);
+					gratingMotorZeroPoint(MOTOR_PIN_POSITIONSENSOR, BUZZER_PIN, m_lcd, m_grtMotor);
 					delay(1000);
 					m_lcd.clear();
 					m_lcd.setCursor(0, 0); m_lcd.print("Set Replicates");
@@ -519,7 +546,7 @@ void loop(void){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("n:  " + m_keyPadString);
 						}
-						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
 					}
 					m_nReadsCorrected=m_keyPadString.toInt();
 					m_okVal=LOW;
@@ -532,7 +559,7 @@ void loop(void){
 					m_lcd.setCursor(0, 0); m_lcd.print("Press 'OK' to");
 					m_lcd.setCursor(0, 1); m_lcd.print("AutoZero");
 					while(m_okVal==LOW){
-						m_okVal=digitalRead(PIN_BUTTON_OK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
 					}
 					m_okVal=LOW;
 					backgroundSensor(m_lcd, m_allSpectrumFile);
@@ -542,8 +569,8 @@ void loop(void){
 					m_allSpectrumScanID=0;
 					delay(1000);
 					while(m_backVal==LOW){
-						m_okVal=digitalRead(PIN_BUTTON_OK);
-						m_backVal=digitalRead(PIN_BUTTON_BACK);
+						m_okVal=digitalRead(BUTTON_PIN_OK);
+						m_backVal=digitalRead(BUTTON_PIN_BACK);
 						if(m_okVal==HIGH){
 							m_okVal=LOW;
 							m_allSpectrumScanID++;
@@ -568,8 +595,8 @@ void loop(void){
 			m_lcd.setCursor(0, 0); m_lcd.print("Conc. Analysis");
 			m_lcd.setCursor(0, 1); m_lcd.print("selected?");
 			while((m_okVal==LOW) && (m_backVal==LOW)){
-				m_okVal=digitalRead(PIN_BUTTON_OK);
-				m_backVal=digitalRead(PIN_BUTTON_BACK);
+				m_okVal=digitalRead(BUTTON_PIN_OK);
+				m_backVal=digitalRead(BUTTON_PIN_BACK);
 				if(m_okVal){
 					m_okVal=LOW;
 					//	>> ======================= TODO ======================= << 

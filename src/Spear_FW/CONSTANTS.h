@@ -37,12 +37,12 @@
 #define LCD_COLS							16
 #define LCD_ROWS							2
 // Pin per il controllo
-#define PIN_LCD_RS 							8
-#define PIN_LCD_ENABLE 						9
-#define PIN_LCD_D4 							10
-#define PIN_LCD_D5 							11
-#define PIN_LCD_D6 							12
-#define PIN_LCD_D7 							13
+#define LCD_PIN_RS 							8
+#define LCD_PIN_ENABLE 						9
+#define LCD_PIN_D4 							10
+#define LCD_PIN_D5 							11
+#define LCD_PIN_D6 							12
+#define LCD_PIN_D7 							13
 
 // Codice identificativo del sensore dell'adafruit
 #define ADAFRUIT_SENSOR_IDENTIFIER 			2519
@@ -61,26 +61,26 @@
 #define MOTOR_STEPS_GRATINGLIMIT_HIGH 		1250				//[STEP] corrisponde a SPECTRALIMIT_HIGH
 #define MOTOR_STEPS_MACHINEZERO		 		1050				//[STEP]Zero macchina. Questi sono gli step che servono per portare la normale della superficia di rifrazione normale alla direzione dei raggi della sorgente luminosa.
 #define MOTOR_POSITIONSENSOR_THRESHOLD		470					//[VALORE ANALOGICO 0%1024]valore sotto il quale considero il sensore ostruito e quindi non in zero 
-#define PIN_MOTOR_POSITIONSENSOR 			A8
+#define MOTOR_PIN_POSITIONSENSOR 			A8
 
 // ======== PARAMETRI PER GESTIRE IL TASTIERINO NUMERICO ========  
 #define KEYPAD_ROWS 						4
 #define KEYPAD_COLS 						3
-#define PIN_KEYPAD_ROW_0 					38
-#define PIN_KEYPAD_ROW_1 					37
-#define PIN_KEYPAD_ROW_2 					36
-#define PIN_KEYPAD_ROW_3 					35
-#define PIN_KEYPAD_COLS_0 					34
-#define PIN_KEYPAD_COLS_1 					33
-#define PIN_KEYPAD_COLS_2 					32
+#define KEYPAD_PIN_ROW_0 					38
+#define KEYPAD_PIN_ROW_1 					37
+#define KEYPAD_PIN_ROW_2 					36
+#define KEYPAD_PIN_ROW_3 					35
+#define KEYPAD_PIN_COLS_0 					34
+#define KEYPAD_PIN_COLS_1 					33
+#define KEYPAD_PIN_COLS_2 					32
 #define KEYPAD_ANTIDEBUNCEFILTER_TIME		150
 
 // Pin del piezo/Buzzer
-#define PIN_BUZZER 							46
+#define BUZZER_PIN 							46
 
 // ======== PARAMETRI PER GESTIRE LA LAMPADA ========  
-#define PIN_LAMP_SWITCH 					25
-#define PIN_LAMP_CHECKINGSENSOR 			A9
+#define LAMP_PIN_SWITCH 					25
+#define LAMP_PIN_CHECKINGSENSOR 			A9
 #define LAMP_CHECKINGSENSOR_THRESHOLD 		460					//[VALORE ANALOGICO 0%1024] valore sotto il quale considero la lampada spenta
 #define LAMP_CHECKING_TIMEBREAK 			250					//[MILLISECONDI] tempo di attesa da un cambio di stato e l'altro per dare alla resistenza il tempo di scaricarsi
 #define LAMP_CHECK_PASSED					0
@@ -89,11 +89,11 @@
 #define LAMP_CHECK_ERROR_PHASE_3			4
 
 // ======== PARAMETRI PER GESTIRE I TASTI DIREZIONALI ========  
-#define	PIN_BUTTON_BACK 					3
-#define PIN_BUTTON_NEXT						4
-#define PIN_BUTTON_UP 						5
-#define PIN_BUTTON_DOWN 					6
-#define PIN_BUTTON_OK 						7
+#define BUTTON_PIN_BACK 					3
+#define BUTTON_PIN_NEXT						4
+#define BUTTON_PIN_UP 						5
+#define BUTTON_PIN_DOWN 					6
+#define BUTTON_PIN_OK 						7
 
 // ======================== SD CARD	==========================
 // https://www.arduino.cc/en/reference/SD
@@ -104,7 +104,9 @@
 	// or pin 53 (on the Mega) - or another pin specified in the call to SD.begin().
 	// Note that even if you don't use the hardware SS pin, it must be left as an output or the SD library won't work. [...]
 
-#define CHIPSELECT 							53					
+#define SD_CHIPSELECT 						53
+#define SD_CONNECTION_DONE					0
+#define SD_CONNECTION_FAILED				1
 
 // Numero totale delle analisi attualmente gestite
 #define ANALYSISMODE_NUMBER 				3
