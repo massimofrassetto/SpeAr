@@ -52,3 +52,7 @@ In the future I will also insert the procedure and the wiring diagram so that yo
 * Arduino Header: https://www.amazon.it/gp/product/B00Q6Y74DA/ref=ppx_yo_dt_b_asin_title_o03_s00?ie=UTF8&psc=1
 * Breadboard: https://www.amazon.it/gp/product/B00CFFFF26/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&psc=1
 * Stepper + Book: https://www.amazon.it/gp/product/B00DHIX0I6/ref=ppx_yo_dt_b_asin_title_o08_s00?ie=UTF8&psc=1
+
+<!-- Comment Syntax -->
+
+
