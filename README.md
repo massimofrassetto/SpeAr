@@ -1,5 +1,5 @@
 # The SpeAr: a Spectrophotometer with Arduino
-[![Build Status](https://travis-ci.com/massimofrassetto/SpeAr.svg?branch=master)](https://travis-ci.com/massimofrassetto/Spear)
+<!--  [![Build Status](https://travis-ci.com/massimofrassetto/SpeAr.svg?branch=master)](https://travis-ci.com/massimofrassetto/Spear) -->
 
 ## Welcome to this repository
 **Hey Folks!** My name is Massimo Frassetto and this is a repository where you can find a simple firmware for my final Exam project on 2015. I was really excited of this project so i decided to continue modify and upgrade it.
