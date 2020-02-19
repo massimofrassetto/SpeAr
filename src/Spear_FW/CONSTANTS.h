@@ -3,12 +3,6 @@
 #ifndef COSTANTS_h
 #define COSTANTS_h
 
-// Informazioni interne della macchina
-
-#define MODEL_VERSION						1.0
-#define FIRMWARE_VERSION					13.5
-
-
 // velocità della comunicazione seriale
 #define SERIAL_BAUDRATE						250000
 

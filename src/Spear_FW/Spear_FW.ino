@@ -28,10 +28,6 @@ Adafruit_StepperMotor *m_grtMotor = AFMS.getStepper(MOTOR_STEPS_PER_REVOLUTION, 
 
 LiquidCrystal m_lcd(LCD_PIN_RS, LCD_PIN_ENABLE, LCD_PIN_D4, LCD_PIN_D5, LCD_PIN_D6, LCD_PIN_D7);
 
-// Sd2Card card;
-// SdVolume volume;
-// SdFile root;
-
 File m_allSpectrumFile;
 File m_traceLog;
 
@@ -86,7 +82,7 @@ void setup(void){
 	tone(BUZZER_PIN, 500, 400); delay(4300);
 	Serial.begin(SERIAL_BAUDRATE);
 	while (!Serial) {
-		; // wait for serial port to connect. Needed for native USB port only
+		; 												// wait for serial port to connect. Needed for native USB port only
 	}
 	// serialTest("TEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEST\n");
 	#ifdef DEBUG_SERIAL
@@ -129,10 +125,11 @@ void setup(void){
 	m_lcd.setCursor(0, 0); m_lcd.print("Initializing");
 	m_lcd.setCursor(0, 1); m_lcd.print("SD card...");
 	if(SDCardChecking(SD_CHIPSELECT)==SD_CONNECTION_DONE){
+		m_lcd.print("OK!");
 		#ifdef DEBUG_SERIAL
 			Serial.println("Established");
+			SDinfo();
 		#endif
-		m_lcd.print("OK!");
 	}
 	else{
 		#ifdef DEBUG_SERIAL
@@ -141,7 +138,9 @@ void setup(void){
 		m_lcd.print("ERR!");
 		printWiringError(BUZZER_PIN, m_lcd);
 	}
-	// SDinfo();
+	waitingButtonPressed(BUTTON_PIN_OK, &m_okVal);
+	waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
+	
 	#ifdef DEBUG_SERIAL
 		Serial.print(">> Creating TSL Sensor connection...\t");
 	#endif
@@ -217,7 +216,7 @@ void setup(void){
 	while(!m_okVal){
 		m_okVal=digitalRead(BUTTON_PIN_OK);
 	}
-	waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
+	waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> Entering 'Selection Mode' Menu");
 	#endif
@@ -270,7 +269,7 @@ void loop(void){
 			m_refreshScreen=false;
 		}
 	}
-	waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
+	waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 	// m_okVal=0;
 	delay(200);
 	#ifdef DEBUG_SERIAL
@@ -289,7 +288,7 @@ void loop(void){
 					#ifdef DEBUG_SERIAL
 						Serial.println(">> Simple Read Selected!");
 					#endif
-					waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
+					waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 					m_lcd.clear();
 					m_lcd.setCursor(0, 0); m_lcd.print("Lambda (nm): ");
 					m_lcd.setCursor(0, 1); m_lcd.print("Set Val: ");
@@ -310,7 +309,7 @@ void loop(void){
 							#endif
 						}
 					}
-					waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
+					waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 					#ifdef DEBUG_SERIAL
 						Serial.println();
 					#endif
@@ -351,7 +350,7 @@ void loop(void){
 							#endif
 						}
 					}
-					waitingButtonRelease(BUTTON_PIN_OK, &m_okVal);
+					waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 					#ifdef DEBUG_SERIAL
 						Serial.println();
 					#endif

@@ -8,7 +8,6 @@
 // =========================================================================================
 
 int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd);
-// void tslConfigureSensor(void);
 void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integrationTime);
 void printWiringError(const int alarmPin, LiquidCrystal myLcd);
 void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin, LiquidCrystal myLcd);
@@ -18,9 +17,10 @@ int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, c
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType);
 void backgroundSensor(LiquidCrystal myLcd, File myFile);
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
-void waitingButtonRelease(int pinButton, int* buttonVal);
+void waitingButtonPressed(int pinButton, int *buttonVal);
+void waitingButtonReleased(int pinButton, int* buttonVal);
 
-// void SDinfo();
+void SDinfo();
 
 // void serialTest(String myString);
 
@@ -38,11 +38,20 @@ void serialSendInstrumentDetalis(void){
 	Serial.print("|\t#Product Name:\t\t\t"); 			Serial.println(INSTRUMENT_NAME);
 	Serial.print("|\t#Model:\t\t\t\t"); 				Serial.println(MODEL_VERSION);
 	Serial.print("|\t#Firmware:\t\t\t"); 				Serial.println(FIRMWARE_VERSION);
-	Serial.print("|\t#Autor Name:\t\t\t"); 			Serial.println(AUTOR_NAME);
+	Serial.print("|\t#Build Date:\t\t\t"); 				Serial.println(BUILD_TIMESTAP_DATE);
+	Serial.print("|\t#Build Time:\t\t\t");				Serial.println(BUILD_TIMESTAP_TIME);
+	Serial.print("|\t#Autor Name:\t\t\t"); 				Serial.println(AUTOR_NAME);
 	Serial.print("|\t#Email:\t\t\t\t"); 				Serial.println(AUTOR_EMAIL);
 }
 
-void waitingButtonRelease(int pinButton, int *buttonVal){
+void waitingButtonPressed(int pinButton, int *buttonVal){
+	while(!digitalRead(pinButton)){
+		;
+	}
+	(*buttonVal)=HIGH;
+}
+
+void waitingButtonReleased(int pinButton, int *buttonVal){
 	while(digitalRead(pinButton)){
 		;
 	}
@@ -180,68 +189,57 @@ void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, Liqu
 int SDCardChecking (const int chipSel){
 	// delay(1);
 	if (SD.begin(chipSel)) {
-		Serial.print("si");
+		// Serial.print("si");
 		return SD_CONNECTION_DONE;
 	}
 	else{
-		Serial.print("no");
+		// Serial.print("no");
 		return SD_CONNECTION_FAILED;
 	}
 	Serial.print("forse");
 }
 
-// void SDinfo(){
-	// //==========================================================================================================================================
-	// Serial.print("Card type:         ");
-	// switch (card.type()) {
-		// case SD_CARD_TYPE_SD1:
-			// Serial.println("SD1");
-			// break;
-		// case SD_CARD_TYPE_SD2:
-			// Serial.println("SD2");
-			// break;
-		// case SD_CARD_TYPE_SDHC:
-			// Serial.println("SDHC");
-			// break;
-		// default:
-			// Serial.println("Unknown");
-	// }
-	// if (!volume.init(card)) {
-		// Serial.println("Could not find FAT16/FAT32 partition.\nMake sure you've formatted the card");
-		// // while (1);
-	// }
-	// Serial.print("Clusters:          ");
-	// Serial.println(volume.clusterCount());
-	// Serial.print("Blocks x Cluster:  ");
-	// Serial.println(volume.blocksPerCluster());
-	
-	// Serial.print("Total Blocks:      ");
-	// Serial.println(volume.blocksPerCluster() * volume.clusterCount());
-	// Serial.println();
-
-	// // print the type and size of the first FAT-type volume
-	// uint32_t volumesize;
-	// Serial.print("Volume type is:    FAT");
-	// Serial.println(volume.fatType(), DEC);
-	
-	// volumesize = volume.blocksPerCluster();    // clusters are collections of blocks
-	// volumesize *= volume.clusterCount();       // we'll have a lot of clusters
-	// volumesize /= 2;                           // SD card blocks are always 512 bytes (2 blocks are 1KB)
-	// Serial.print("Volume size (Kb):  ");
-	// Serial.println(volumesize);
-	// Serial.print("Volume size (Mb):  ");
-	// volumesize /= 1024;
-	// Serial.println(volumesize);
-	// Serial.print("Volume size (Gb):  ");
-	// Serial.println((float)volumesize / 1024.0);
-
-	// Serial.println("\nFiles found on the card (name, date and size in bytes): ");
-	// root.openRoot(volume);
-
-	// // list all files in the card with date and size
-	// root.ls(LS_R | LS_DATE | LS_SIZE);
-	// //==========================================================================================================================================
-// }
+void SDinfo(){
+	Sd2Card card;
+	SdVolume volume;
+	SdFile root;
+	Serial.print(">>\t#Card type:\t\t\t");
+	switch (card.type()) {
+		case SD_CARD_TYPE_SD1:
+			Serial.println("SD1");
+			break;
+		case SD_CARD_TYPE_SD2:
+			Serial.println("SD2");
+			break;
+		case SD_CARD_TYPE_SDHC:
+			Serial.println("SDHC");
+			break;
+		default:
+			Serial.println("Unknown");
+	}
+	if (!volume.init(card)) {
+		Serial.println(">> !!! Could not find FAT16/FAT32 partition !!!");
+		Serial.println(">> !!! Make sure you've formatted the card !!!");
+	}
+	else {
+		Serial.print(">>\t#Clusters:\t\t\t");			Serial.println(volume.clusterCount());
+		Serial.print(">>\t#Blocks x Cluster:\t");		Serial.println(volume.blocksPerCluster());
+		Serial.print(">>\t#Total Blocks:\t\t");			Serial.println(volume.blocksPerCluster() * volume.clusterCount());
+		Serial.println();
+		uint32_t volumesize;								// print the type and size of the first FAT-type volume
+		Serial.print(">>\t#Volume type is:\t\tFAT");	Serial.println(volume.fatType(), DEC);
+		volumesize = volume.blocksPerCluster();			// clusters are collections of blocks
+		volumesize *= volume.clusterCount();				// we'll have a lot of clusters
+		volumesize /= 2;									// SD card blocks are always 512 bytes (2 blocks are 1KB)
+		Serial.print(">>\t#Volume size (Kb):\t\t");		Serial.println(volumesize);
+		volumesize /= 1024;
+		Serial.print(">>\t#Volume size (Mb):\t\t");		Serial.println(volumesize);
+		Serial.print(">>\t#Volume size (Gb):\t\t");		Serial.println((float)volumesize / 1024.0);
+		Serial.println(">>\t#Files found on the card (name, date and size in bytes):");
+		root.openRoot(volume);
+		root.ls(LS_R | LS_DATE | LS_SIZE);				// list all files in the card with date and size
+	}
+}
 
 // verifico che la lampada sia in funzione e che il relè cambi di stato.
 // Bisognerebbe gestire anche il punto in viene generato l'errore visto che utilizzo un array
@@ -252,9 +250,9 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 	//delay(2500);
 	/*
 	la logica dietro questo test è la seguente:
-		- rilevo se è gia accesa (valotare se accendere solo quando necessario) e poi la spegno;
-		- rilevo se è spenta e poi riaccendo;
-		- rilevo se è accesa.
+		- rilevo se è gia accesa (valutare se accendere solo quando necessario);
+		- La spegno e rilevo se è spenta ;
+		- La riaccendo e rilevo se è accesa.
 	Ad ogni step vado a salvare l'esito su un array così avrò modo, in caso di problemi, di sapere dove è avvenuto.
 	Tra uno stato e l'altro do il tempo alla resistenza della lampada di spegnersi del tutto per evitare false lettura (verificare se si può abbassare il tempo).
 	*/
@@ -287,7 +285,6 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 	}
 	else{
 		return lampCheckingErrorSum;
-		// printWiringError(buzzerLCPin);
 	}
 	delay(1500);
 }
@@ -297,18 +294,6 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 	La tengo per il momento ma in realtà è totalmente inuitle in quanto talmente semplice.
 	Al più bisogna vedere come gestire il campo di lettura in base alle impostazioni di default
 */
-	// // Simple data read example. Just read the infrared, fullspecrtrum diode 
-	// // or 'visible' (difference between the two) channels.
-	// // This can take 100-600 milliseconds! Uncomment whichever of the following you want to read
-// int simpleRead(Adafruit_TSL2591 *myTsl){
-	// uint16_t x = (*myTsl).getLuminosity(TSL2591_VISIBLE);
-	// //uint16_t x = (*myTsl).getLuminosity(TSL2561_FULLSPECTRUM);
-	// //uint16_t x = (*myTsl).getLuminosity(TSL2561_INFRARED);
-
-	// Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
-	// m_readsVal=x;
-// }
-// int simpleRead(int tslReadType){
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 	switch(tslReadType){
 		case(TSL_READTYPE_VISIBLE):{
@@ -354,4 +339,15 @@ void backgroundSensor(LiquidCrystal myLcd, File myFile){
 // int simpleRead(void);
 // int simpleRead(int tslReadType);
 
+	// Simple data read example. Just read the infrared, fullspecrtrum diode 
+	// or 'visible' (difference between the two) channels.
+	// This can take 100-600 milliseconds! Uncomment whichever of the following you want to read
+// int simpleRead(Adafruit_TSL2591 *myTsl){
+	// uint16_t x = (*myTsl).getLuminosity(TSL2591_VISIBLE);
+	// //uint16_t x = (*myTsl).getLuminosity(TSL2561_FULLSPECTRUM);
+	// //uint16_t x = (*myTsl).getLuminosity(TSL2561_INFRARED);
+
+	// Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
+	// m_readsVal=x;
+// }
 #endif
