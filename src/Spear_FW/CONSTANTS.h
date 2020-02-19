@@ -7,8 +7,12 @@
 #define SERIAL_BAUDRATE						250000
 
 // ======== PARAMETRI PER GESTIRE IL SENSORE TSL ========
-#define TSL_CONNECTION_DONE					0
-#define TSL_CONNECTION_FAILED				1
+// #define RTC_CONNECTION_DONE					0
+// #define RTC_CONNECTION_FAILED				1
+
+// ======== PARAMETRI PER GESTIRE IL SENSORE TSL ========
+// #define TSL_CONNECTION_DONE					0
+// #define TSL_CONNECTION_FAILED				1
 
 #define TSL_GAIN_LOW						0
 #define TSL_GAIN_MED						1
@@ -67,7 +71,7 @@
 #define KEYPAD_PIN_COLS_0 					34
 #define KEYPAD_PIN_COLS_1 					33
 #define KEYPAD_PIN_COLS_2 					32
-#define KEYPAD_ANTIDEBUNCEFILTER_TIME		150
+#define KEYPAD_ANTIDEBOUNCEFILTER_TIME		150
 
 // Pin del piezo/Buzzer
 #define BUZZER_PIN 							46
@@ -99,8 +103,8 @@
 	// Note that even if you don't use the hardware SS pin, it must be left as an output or the SD library won't work. [...]
 
 #define SD_CHIPSELECT 						53
-#define SD_CONNECTION_DONE					0
-#define SD_CONNECTION_FAILED				1
+// #define SD_CONNECTION_DONE					0
+// #define SD_CONNECTION_FAILED				1
 
 // Numero totale delle analisi attualmente gestite
 #define ANALYSISMODE_NUMBER 				3

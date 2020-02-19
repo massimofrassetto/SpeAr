@@ -7,9 +7,11 @@
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include "Adafruit_TSL2591.h"
+#include <Adafruit_TSL2591.h>
 
 #include <Adafruit_MotorShield.h>
+
+#include <RTClib.h>
 
 #include <SPI.h>
 #include <SD.h>
@@ -18,13 +20,14 @@
 
 #include "CONSTANTS.h"
 #include "MSG.h"
-
 #include "FUNCTIONS.h"
 
 Adafruit_TSL2591 m_tsl = Adafruit_TSL2591(ADAFRUIT_SENSOR_IDENTIFIER); // pass in a number for the sensor identifier (for your use later)
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 Adafruit_StepperMotor *m_grtMotor = AFMS.getStepper(MOTOR_STEPS_PER_REVOLUTION, MOTOR_PORT);
+
+RTC_DS1307 m_rtc;
 
 LiquidCrystal m_lcd(LCD_PIN_RS, LCD_PIN_ENABLE, LCD_PIN_D4, LCD_PIN_D5, LCD_PIN_D6, LCD_PIN_D7);
 
@@ -50,6 +53,10 @@ bool m_refreshScreen=true;
 
 int m_gratingMotorFutureSteps;
 int m_gratingMotorCurrentSteps;
+
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+DateTime now;
+
 int m_lambdaMin;
 int m_lambdaMax;
 int m_lambdaRequested;
@@ -110,6 +117,55 @@ void setup(void){
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> I/O Inizializated;");
 	#endif
+	#ifdef DEBUG_SERIAL
+		Serial.print(">> RTC Connection...\t\t\t");
+	#endif
+	m_lcd.clear();
+	m_lcd.setCursor(0, 0); m_lcd.print("Initializing");
+	m_lcd.setCursor(0, 1); m_lcd.print("RTC...");
+	if(m_rtc.begin()){
+		m_lcd.print("OK!");
+		#ifdef DEBUG_SERIAL
+			Serial.println("Established");
+		#endif
+		if (!m_rtc.isrunning()) {
+			#ifdef DEBUG_SERIAL
+				Serial.println(">>\t#RTC is NOT running!");
+				Serial.println(">>\t#Build timestamp will be set!");
+			#endif
+			m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // following line sets the RTC to the date & time this sketch was compiled
+			// rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));  // This line sets the RTC with an explicit date & time, for example to set January 21, 2014 at 3am you would call:
+		}
+		else{
+			// m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); //Imposta l'orario in modo rapido scommentando questa riga
+			now = m_rtc.now();
+			#ifdef DEBUG_SERIAL
+				Serial.print(">>\t#Current Time:\t\t\t");
+				Serial.print(now.year(), DEC);
+				Serial.print('/');
+				Serial.print(now.month(), DEC);
+				Serial.print('/');
+				Serial.print(now.day(), DEC);
+				Serial.print(" (");
+				Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
+				Serial.print(") ");
+				Serial.print(now.hour(), DEC);
+				Serial.print(':');
+				Serial.print(now.minute(), DEC);
+				Serial.print(':');
+				Serial.println(now.second(), DEC);
+			#endif
+		}
+	}
+	else{
+		#ifdef DEBUG_SERIAL
+			Serial.println("Failed");
+		#endif
+		m_lcd.print("ERR!");
+		printWiringError(BUZZER_PIN, m_lcd);
+		waitingButtonPressed(BUTTON_PIN_OK, &m_okVal);
+		waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
+	}
 	AFMS.begin();
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> Motor Inizializated;");
@@ -124,7 +180,8 @@ void setup(void){
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Initializing");
 	m_lcd.setCursor(0, 1); m_lcd.print("SD card...");
-	if(SDCardChecking(SD_CHIPSELECT)==SD_CONNECTION_DONE){
+	// if(SDCardChecking(SD_CHIPSELECT)==SD_CONNECTION_DONE){
+	if(SD.begin(SD_CHIPSELECT)){
 		m_lcd.print("OK!");
 		#ifdef DEBUG_SERIAL
 			Serial.println("Established");
@@ -137,16 +194,16 @@ void setup(void){
 		#endif
 		m_lcd.print("ERR!");
 		printWiringError(BUZZER_PIN, m_lcd);
+		waitingButtonPressed(BUTTON_PIN_OK, &m_okVal);
+		waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 	}
-	waitingButtonPressed(BUTTON_PIN_OK, &m_okVal);
-	waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
-	
 	#ifdef DEBUG_SERIAL
 		Serial.print(">> Creating TSL Sensor connection...\t");
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Init.ing TSL...");
-	if(tslSensorInitializationConnection(&m_tsl, m_lcd)==TSL_CONNECTION_DONE){
+	// if(tslSensorInitializationConnection(&m_tsl, m_lcd)==TSL_CONNECTION_DONE){
+	if(m_tsl.begin()){
 		#ifdef DEBUG_SERIAL
 			Serial.println("Established");
 		#endif
@@ -196,9 +253,9 @@ void setup(void){
 	tslConfigureSensor(&m_tsl, TSL_GAIN_MAX, TSL_INTEGRATIONTIME_300ms);
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> Configuring Keypad...");
-		Serial.print("|\t#Product Name:\t\t\t"); 			Serial.println(KEYPAD_ANTIDEBUNCEFILTER_TIME);
+		Serial.print(">>\t#Debounce Filter:\t\t\t"); 			Serial.println(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
 	#endif
-	m_customKeypad.setDebounceTime(KEYPAD_ANTIDEBUNCEFILTER_TIME);
+	m_customKeypad.setDebounceTime(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
 	#ifdef DEBUG_SERIAL
 		Serial.println("===================================================================");
 		Serial.println("===================== Initialization COMPLETED ====================");

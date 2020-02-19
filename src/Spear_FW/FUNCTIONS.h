@@ -7,19 +7,19 @@
 // ======================================= PROTOTIPI =======================================
 // =========================================================================================
 
-int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd);
+// int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd);
 void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integrationTime);
+// int rtcChecking(RTC_DS1307 *myRtc);
 void printWiringError(const int alarmPin, LiquidCrystal myLcd);
 void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin, LiquidCrystal myLcd);
 void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
-int SDCardChecking(const int chipSel);
+// int SDCardChecking(const int chipSel);
 int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin, LiquidCrystal myLcd);
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType);
 void backgroundSensor(LiquidCrystal myLcd, File myFile);
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonPressed(int pinButton, int *buttonVal);
 void waitingButtonReleased(int pinButton, int* buttonVal);
-
 void SDinfo();
 
 // void serialTest(String myString);
@@ -141,18 +141,18 @@ void printWiringError (const int alarmPin, LiquidCrystal myLcd){
 }
 
 // Verifico che la comunicazione con il sensore tsl sia funzionante
-int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd){
-	// myLcd.clear();
-	// myLcd.setCursor(0, 0); myLcd.print("Checking TSL...");
-	if ((*myTsl).begin()){
-		// myLcd.setCursor(0, 1); myLcd.print("	OK!");
-		return TSL_CONNECTION_DONE;
-	} 
-	else{
-		return TSL_CONNECTION_FAILED;
-		// printWiringError(BUZZER_PIN);
-	}
-}
+// int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd){
+	// // myLcd.clear();
+	// // myLcd.setCursor(0, 0); myLcd.print("Checking TSL...");
+	// if ((*myTsl).begin()){
+		// // myLcd.setCursor(0, 1); myLcd.print("	OK!");
+		// return TSL_CONNECTION_DONE;
+	// } 
+	// else{
+		// return TSL_CONNECTION_FAILED;
+		// // printWiringError(BUZZER_PIN);
+	// }
+// }
 
 // Azzero la posizione della griglia di rifrazione
 void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, LiquidCrystal myLcd, Adafruit_StepperMotor *myMotor){
@@ -186,18 +186,18 @@ void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, Liqu
 // }
 
 // verifico la scheda SD
-int SDCardChecking (const int chipSel){
-	// delay(1);
-	if (SD.begin(chipSel)) {
-		// Serial.print("si");
-		return SD_CONNECTION_DONE;
-	}
-	else{
-		// Serial.print("no");
-		return SD_CONNECTION_FAILED;
-	}
-	Serial.print("forse");
-}
+// int SDCardChecking (const int chipSel){
+	// // delay(1);
+	// if (SD.begin(chipSel)) {
+		// // Serial.print("si");
+		// return SD_CONNECTION_DONE;
+	// }
+	// else{
+		// // Serial.print("no");
+		// return SD_CONNECTION_FAILED;
+	// }
+	// // Serial.print("forse");
+// }
 
 void SDinfo(){
 	Sd2Card card;
@@ -334,6 +334,7 @@ void backgroundSensor(LiquidCrystal myLcd, File myFile){
 		delay(2500);
 	}
 }
+
 
 // ========================================== OLD ==========================================
 // int simpleRead(void);
