@@ -103,8 +103,9 @@
 	// Note that even if you don't use the hardware SS pin, it must be left as an output or the SD library won't work. [...]
 
 #define SD_CHIPSELECT 						53
-// #define SD_CONNECTION_DONE					0
-// #define SD_CONNECTION_FAILED				1
+#define SD_INITIALIZING_DONE				0
+#define SD_INITIALIZING_CARD_FAILED			1
+#define SD_INITIALIZING_VOLUME_FAILED		2
 
 // Numero totale delle analisi attualmente gestite
 #define ANALYSISMODE_NUMBER 				3

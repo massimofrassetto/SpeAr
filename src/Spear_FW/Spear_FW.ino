@@ -32,7 +32,8 @@ RTC_DS1307 m_rtc;
 LiquidCrystal m_lcd(LCD_PIN_RS, LCD_PIN_ENABLE, LCD_PIN_D4, LCD_PIN_D5, LCD_PIN_D6, LCD_PIN_D7);
 
 File m_allSpectrumFile;
-File m_traceLog;
+File m_concAnalysis;
+File m_spearTraceLog;
 
 const byte ROWS = KEYPAD_ROWS;
 const byte COLS = KEYPAD_COLS;
@@ -180,13 +181,32 @@ void setup(void){
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Initializing");
 	m_lcd.setCursor(0, 1); m_lcd.print("SD card...");
-	// if(SDCardChecking(SD_CHIPSELECT)==SD_CONNECTION_DONE){
 	if(SD.begin(SD_CHIPSELECT)){
 		m_lcd.print("OK!");
 		#ifdef DEBUG_SERIAL
 			Serial.println("Established");
-			SDinfo();
+			Serial.print(">> Initializing SD Card...\t\t");
 		#endif
+		switch(SDinitPlusInfo(SD_CHIPSELECT)){
+			case SD_INITIALIZING_CARD_FAILED:
+				#ifdef DEBUG_SERIAL
+					Serial.println("Failed");
+					Serial.println(">> !!! Initialization Failed !!!");
+					// Serial.println("* is a card inserted?");
+					// Serial.println("* is your wiring correct?");
+					// Serial.println("* did you change the chipSelect pin to match your shield or module?")
+				#endif
+				printWiringError(BUZZER_PIN, m_lcd);
+				break;
+			case SD_INITIALIZING_VOLUME_FAILED:
+				#ifdef DEBUG_SERIAL
+					Serial.println("Failed");
+					Serial.println(">> !!! Could not find FAT16/FAT32 partition !!!");
+					Serial.println(">> !!! Make sure you've formatted the card !!!");
+				#endif
+				printWiringError(BUZZER_PIN, m_lcd);
+				break;
+		}
 	}
 	else{
 		#ifdef DEBUG_SERIAL
@@ -202,7 +222,6 @@ void setup(void){
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Init.ing TSL...");
-	// if(tslSensorInitializationConnection(&m_tsl, m_lcd)==TSL_CONNECTION_DONE){
 	if(m_tsl.begin()){
 		#ifdef DEBUG_SERIAL
 			Serial.println("Established");
@@ -253,7 +272,7 @@ void setup(void){
 	tslConfigureSensor(&m_tsl, TSL_GAIN_MAX, TSL_INTEGRATIONTIME_300ms);
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> Configuring Keypad...");
-		Serial.print(">>\t#Debounce Filter:\t\t\t"); 			Serial.println(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
+		Serial.print(">>\t#Debounce Filter:\t\t"); 			Serial.println(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
 	#endif
 	m_customKeypad.setDebounceTime(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
 	#ifdef DEBUG_SERIAL
@@ -330,7 +349,7 @@ void loop(void){
 	// m_okVal=0;
 	delay(200);
 	#ifdef DEBUG_SERIAL
-		Serial.print(">> Mode Selected:\t\t"); Serial.print(m_indexAnalysisMode); Serial.print(" - "); Serial.println(m_analysisModeLcdString[m_indexAnalysisMode]);
+		Serial.print(">> Mode Selected:\t\t"); Serial.print(m_indexAnalysisMode+1); Serial.print(" - "); Serial.println(m_analysisModeLcdString[m_indexAnalysisMode]);
 		Serial.println(">> Waiting confirm...");
 	#endif
 	switch(m_indexAnalysisMode){
@@ -357,7 +376,6 @@ void loop(void){
 						m_okVal=digitalRead(BUTTON_PIN_OK);
 						m_customKey=0;
 						m_customKey=m_customKeypad.getKey();
-						// delay(KEYPAD_ANTIDEBUNCEFILTER);
 						if(m_customKey){
 							m_keyPadString+=m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set Val: " + m_keyPadString);
@@ -398,7 +416,6 @@ void loop(void){
 						m_okVal=digitalRead(BUTTON_PIN_OK);
 						m_customKey=0;
 						m_customKey = m_customKeypad.getKey();
-						// delay(100);
 						if(m_customKey){
 							m_keyPadString+=m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("n: " + m_keyPadString);
@@ -455,7 +472,6 @@ void loop(void){
 					m_lcd.setCursor(0, 1); m_lcd.print("Index: ");
 					for(m_nReadsCaptured; m_nReadsCaptured<m_nReadsCorrected; m_nReadsCaptured++){
 						m_lcd.setCursor(7, 1); m_lcd.print(String(m_nReadsCaptured) + "/" + String(m_nReadsCorrected));
-						// simpleRead(tsl);
 						m_readsVal=simpleRead(&m_tsl, TSL_READTYPE_VISIBLE);
 						m_sumBackgroundReadsVal+=m_readsVal;
 						#ifdef DEBUG_SERIAL
@@ -488,7 +504,6 @@ void loop(void){
 							m_sumSampleReadsVal=0;
 							for(m_nReadsCaptured; m_nReadsCaptured<m_nReadsCorrected; m_nReadsCaptured++){
 								m_lcd.setCursor(7, 1); m_lcd.print(String(m_nReadsCaptured) + "/" + String(m_nReadsCorrected));
-								// simpleRead();
 								m_readsVal=simpleRead(&m_tsl, TSL_READTYPE_VISIBLE);
 								m_sumSampleReadsVal+=m_readsVal;
 								#ifdef DEBUG_SERIAL
@@ -552,7 +567,6 @@ void loop(void){
 					while(m_okVal==LOW){
 						m_customKey=0;
 						m_customKey = m_customKeypad.getKey();
-						// delay(100);
 						if(m_customKey){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set MIN:  " + m_keyPadString);
@@ -570,7 +584,6 @@ void loop(void){
 					while(m_okVal==LOW){
 						m_customKey=0;
 						m_customKey = m_customKeypad.getKey();
-						// delay(100);
 						if(m_customKey){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("Set MAX:  " + m_keyPadString);
@@ -588,7 +601,7 @@ void loop(void){
 					m_lcd.clear();
 					m_lcd.setCursor(0, 0); m_lcd.print("Grating Motor");
 					m_lcd.setCursor(0, 1); m_lcd.print("Zero setting...");
-					gratingMotorZeroPoint(MOTOR_PIN_POSITIONSENSOR, BUZZER_PIN, m_lcd, m_grtMotor);
+					// gratingMotorZeroPoint(MOTOR_PIN_POSITIONSENSOR, BUZZER_PIN, m_lcd, m_grtMotor);
 					delay(1000);
 					m_lcd.clear();
 					m_lcd.setCursor(0, 0); m_lcd.print("Set Replicates");
@@ -597,7 +610,6 @@ void loop(void){
 					while(m_okVal==LOW){
 						m_customKey=0;
 						m_customKey = m_customKeypad.getKey();
-						// delay(100);
 						if(m_customKey){
 							m_keyPadString=m_keyPadString+m_customKey;
 							m_lcd.setCursor(0, 1); m_lcd.print("n:  " + m_keyPadString);
@@ -618,7 +630,45 @@ void loop(void){
 						m_okVal=digitalRead(BUTTON_PIN_OK);
 					}
 					m_okVal=LOW;
-					backgroundSensor(m_lcd, m_allSpectrumFile);
+					//	>> ======================= TODO ======================= << 
+					now = m_rtc.now();
+					// backgroundSensor(m_lcd, now, m_allSpectrumFile);
+					//	>> ---------------------------------------------------------------------------------------------------------------------- << 
+					delay(1000);
+					m_lcd.clear();
+					m_lcd.setCursor(0, 0); m_lcd.print("Opening...");
+					m_allSpectrumFile = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
+					if(m_allSpectrumFile){
+						m_lcd.clear();
+						m_lcd.setCursor(0, 0); m_lcd.print("writing...");
+						delay(2500);
+						m_allSpectrumFile.println("\n-------------------------------------------------");
+						m_allSpectrumFile.println("All Specrtum Analysis Data");
+						m_allSpectrumFile.print("SerialNumber:  ");
+						m_allSpectrumFile.println("[__________]");
+						m_allSpectrumFile.print("Timestamp:\t");
+						m_allSpectrumFile.print(now.year(), DEC);
+						m_allSpectrumFile.print('/');
+						m_allSpectrumFile.print(now.month(), DEC);
+						m_allSpectrumFile.print('/');
+						m_allSpectrumFile.print(now.day(), DEC);
+						// m_allSpectrumFile.print(" (");
+						// m_allSpectrumFile.print(daysOfTheWeek[now.dayOfTheWeek()]);
+						// m_allSpectrumFile.print(") ");
+						m_allSpectrumFile.print(now.hour(), DEC);
+						m_allSpectrumFile.print(':');
+						m_allSpectrumFile.print(now.minute(), DEC);
+						m_allSpectrumFile.print(':');
+						m_allSpectrumFile.println(now.second(), DEC);
+						m_allSpectrumFile.println("-------------------------------------------------");
+						m_allSpectrumFile.close();
+					}
+					else{
+						m_lcd.clear();
+						m_lcd.setCursor(0, 0); m_lcd.print("problem...  ):");
+						delay(2500);
+					}
+	//	>> ---------------------------------------------------------------------------------------------------------------------- << 
 					m_lcd.clear();
 					m_lcd.setCursor(0, 0); m_lcd.print("Load Sample!");
 					m_lcd.setCursor(0, 1); m_lcd.print("'OK' to read...");
@@ -633,7 +683,10 @@ void loop(void){
 							m_lcd.clear();
 							m_lcd.setCursor(0, 0); m_lcd.print("Reading...");
 							delay(1000);
-							//	>> ======================= TODO ======================= << 
+							for (int i=0;i<m_lambdaMax-m_lambdaMin;i++){
+								// writeOnFile(m_allSpectrumFile, simpleRead(&m_tsl, TSL_READTYPE_VISIBLE), m_lcd);
+								//	>> ======================= TODO ======================= << 
+							}
 							m_lcd.clear();
 							m_lcd.setCursor(0, 0); m_lcd.print("Spectrum " + m_allSpectrumScanID);
 							m_lcd.setCursor(0, 1); m_lcd.print("Saved!");

@@ -16,11 +16,12 @@ void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
 // int SDCardChecking(const int chipSel);
 int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin, LiquidCrystal myLcd);
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType);
-void backgroundSensor(LiquidCrystal myLcd, File myFile);
+void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile);
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonPressed(int pinButton, int *buttonVal);
 void waitingButtonReleased(int pinButton, int* buttonVal);
-void SDinfo();
+int SDinitPlusInfo(const int myChipSel);
+void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd);
 
 // void serialTest(String myString);
 
@@ -199,45 +200,53 @@ void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, Liqu
 	// // Serial.print("forse");
 // }
 
-void SDinfo(){
+int SDinitPlusInfo(const int myChipSel){
 	Sd2Card card;
 	SdVolume volume;
 	SdFile root;
-	Serial.print(">>\t#Card type:\t\t\t");
-	switch (card.type()) {
-		case SD_CARD_TYPE_SD1:
-			Serial.println("SD1");
-			break;
-		case SD_CARD_TYPE_SD2:
-			Serial.println("SD2");
-			break;
-		case SD_CARD_TYPE_SDHC:
-			Serial.println("SDHC");
-			break;
-		default:
-			Serial.println("Unknown");
+	if (!card.init(SPI_HALF_SPEED, myChipSel)) {
+		return SD_INITIALIZING_CARD_FAILED;
 	}
-	if (!volume.init(card)) {
-		Serial.println(">> !!! Could not find FAT16/FAT32 partition !!!");
-		Serial.println(">> !!! Make sure you've formatted the card !!!");
+	else if (!volume.init(card)) {
+		return SD_INITIALIZING_VOLUME_FAILED;
 	}
-	else {
-		Serial.print(">>\t#Clusters:\t\t\t");			Serial.println(volume.clusterCount());
-		Serial.print(">>\t#Blocks x Cluster:\t");		Serial.println(volume.blocksPerCluster());
-		Serial.print(">>\t#Total Blocks:\t\t");			Serial.println(volume.blocksPerCluster() * volume.clusterCount());
-		Serial.println();
-		uint32_t volumesize;								// print the type and size of the first FAT-type volume
-		Serial.print(">>\t#Volume type is:\t\tFAT");	Serial.println(volume.fatType(), DEC);
-		volumesize = volume.blocksPerCluster();			// clusters are collections of blocks
-		volumesize *= volume.clusterCount();				// we'll have a lot of clusters
-		volumesize /= 2;									// SD card blocks are always 512 bytes (2 blocks are 1KB)
-		Serial.print(">>\t#Volume size (Kb):\t\t");		Serial.println(volumesize);
-		volumesize /= 1024;
-		Serial.print(">>\t#Volume size (Mb):\t\t");		Serial.println(volumesize);
-		Serial.print(">>\t#Volume size (Gb):\t\t");		Serial.println((float)volumesize / 1024.0);
-		Serial.println(">>\t#Files found on the card (name, date and size in bytes):");
-		root.openRoot(volume);
-		root.ls(LS_R | LS_DATE | LS_SIZE);				// list all files in the card with date and size
+	else{
+		#ifdef DEBUG_SERIAL
+			Serial.println("Initialized");
+			Serial.print(">>\t#Card type:\t\t\t");
+			switch(card.type()){
+				case SD_CARD_TYPE_SD1:
+					Serial.println("SD1");
+					break;
+				case SD_CARD_TYPE_SD2:
+					Serial.println("SD2");
+					break;
+				case SD_CARD_TYPE_SDHC:
+					Serial.println("SDHC");
+					break;
+				default:
+					Serial.println("Unknown");
+			}
+			Serial.print(">>\t#Clusters:\t\t\t");			Serial.println(volume.clusterCount());
+			Serial.print(">>\t#Blocks x Cluster:\t\t");		Serial.println(volume.blocksPerCluster());
+			Serial.print(">>\t#Total Blocks:\t\t\t");			Serial.println(volume.blocksPerCluster() * volume.clusterCount());
+			Serial.println();
+			uint32_t volumesize;								// print the type and size of the first FAT-type volume
+			Serial.print(">>\t#Volume type is:\t\tFAT");	Serial.println(volume.fatType(), DEC);
+			volumesize = volume.blocksPerCluster();				// clusters are collections of blocks
+			volumesize *= volume.clusterCount();				// we'll have a lot of clusters
+			volumesize /= 2;									// SD card blocks are always 512 bytes (2 blocks are 1KB)
+			Serial.print(">>\t#Volume size (Kb):\t\t");		Serial.println(volumesize);
+			volumesize /= 1024;
+			Serial.print(">>\t#Volume size (Mb):\t\t");		Serial.println(volumesize);
+			Serial.print(">>\t#Volume size (Gb):\t\t");		Serial.println((float)volumesize / 1024.0);
+			Serial.println(">>\t#Files found on the card (name, date and size in bytes):");
+			Serial.println("------------------------------------------------------------");
+			root.openRoot(volume);
+			root.ls( LS_R | LS_DATE | LS_SIZE );				// list all files in the card with date and size
+			Serial.println("------------------------------------------------------------");
+			return SD_INITIALIZING_DONE;
+		#endif
 	}
 }
 
@@ -314,19 +323,48 @@ uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 /*
 	Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
 */
-void backgroundSensor(LiquidCrystal myLcd, File myFile){
+void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile){
 	delay(1000);
 	myLcd.clear();
 	myLcd.setCursor(0, 0); myLcd.print("Opening...");
-	myFile = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
-	if(myFile){
+	(*myFile) = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
+	if((*myFile)){
 		myLcd.clear();
 		myLcd.setCursor(0, 0); myLcd.print("writing...");
 		delay(2500);
-		myFile.println("All Specrtum Analysis Data");
-		myFile.print("SerialNumber:  ");
-		myFile.println("[__________]");
-		myFile.close();
+		(*myFile).println("\n-------------------------------------------------");
+		(*myFile).println("All Specrtum Analysis Data");
+		(*myFile).print("SerialNumber:  ");
+		(*myFile).println("[__________]");
+		(*myFile).print("Timestamp:\t");
+		(*myFile).print(myTime.year(), DEC);
+		(*myFile).print('/');
+		(*myFile).print(myTime.month(), DEC);
+		(*myFile).print('/');
+		(*myFile).print(myTime.day(), DEC);
+		// (*myFile).print(" (");
+		// (*myFile).print(daysOfTheWeek[myTime.dayOfTheWeek()]);
+		// (*myFile).print(") ");
+		(*myFile).print(myTime.hour(), DEC);
+		(*myFile).print(':');
+		(*myFile).print(myTime.minute(), DEC);
+		(*myFile).print(':');
+		(*myFile).println(myTime.second(), DEC);
+		(*myFile).println("-------------------------------------------------");
+		(*myFile).close();
+	}
+	else{
+		myLcd.clear();
+		myLcd.setCursor(0, 0); myLcd.print("problem...  ):");
+		delay(2500);
+	}
+}
+
+void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd){
+	(*myFile) = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
+	if((*myFile)){
+		(*myFile).print(read + ";");
+		(*myFile).close();
 	}
 	else{
 		myLcd.clear();
