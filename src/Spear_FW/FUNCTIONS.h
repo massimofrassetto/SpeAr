@@ -18,17 +18,17 @@ int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, c
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType);
 void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile);
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
-void waitingButtonPressed(int pinButton, int *buttonVal);
-void waitingButtonReleased(int pinButton, int* buttonVal);
+void waitingButtonPressed(int pinButton, bool *buttonVal);
+void waitingButtonReleased(int pinButton, bool* buttonVal);
 int SDinitPlusInfo(const int myChipSel);
-void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd);
+// void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd);
 
 // void serialTest(String myString);
 
 // =========================================================================================
 // ======================================= FUNZIONI ========================================
 // =========================================================================================
-
+// da spostare poi su un CPP
 // void serialTest(String myString){
 	// #ifdef SERIAL_OUTPUT
 		// Serial.print(myString);
@@ -45,18 +45,20 @@ void serialSendInstrumentDetalis(void){
 	Serial.print("|\t#Email:\t\t\t\t"); 				Serial.println(AUTOR_EMAIL);
 }
 
-void waitingButtonPressed(int pinButton, int *buttonVal){
+void waitingButtonPressed(int pinButton, bool *buttonVal){
 	while(!digitalRead(pinButton)){
 		;
 	}
-	(*buttonVal)=HIGH;
+	(*buttonVal)=true;
+	delay(BUTTON_ANTIDEBOUNCEFILTER_TIME);
 }
 
-void waitingButtonReleased(int pinButton, int *buttonVal){
+void waitingButtonReleased(int pinButton, bool *buttonVal){
 	while(digitalRead(pinButton)){
 		;
 	}
-	(*buttonVal)=LOW;
+	(*buttonVal)=false;
+	delay(BUTTON_ANTIDEBOUNCEFILTER_TIME);
 }
 
 // Funzione per decidere quale sensibilità ed il tempo di integrazione che il mio sensore deve avere.
@@ -141,20 +143,6 @@ void printWiringError (const int alarmPin, LiquidCrystal myLcd){
 	tone(alarmPin, 400, 1000);
 }
 
-// Verifico che la comunicazione con il sensore tsl sia funzionante
-// int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd){
-	// // myLcd.clear();
-	// // myLcd.setCursor(0, 0); myLcd.print("Checking TSL...");
-	// if ((*myTsl).begin()){
-		// // myLcd.setCursor(0, 1); myLcd.print("	OK!");
-		// return TSL_CONNECTION_DONE;
-	// } 
-	// else{
-		// return TSL_CONNECTION_FAILED;
-		// // printWiringError(BUZZER_PIN);
-	// }
-// }
-
 // Azzero la posizione della griglia di rifrazione
 void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, LiquidCrystal myLcd, Adafruit_StepperMotor *myMotor){
 	myLcd.clear();
@@ -176,29 +164,6 @@ void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, Liqu
 	myLcd.setCursor(0, 0); myLcd.print("Motor Setted!");
 	myLcd.setCursor(0, 1); myLcd.print("Dgr.= 0'");
 }
-
-// funzione inutile se non per scrivere sullo schermo LCD. DA INCORPORARE CON QUELLA SOPRA
-// void gratingMotorChecking (const int sensMotCheckPin, const int buzzerCheckPin){
-	// gratingMotorZeroPoint(sensMotCheckPin, buzzerCheckPin);
-	// myLcd.clear();
-	// myLcd.setCursor(0, 0); myLcd.print("Motor Setted!");
-	// myLcd.setCursor(0, 1); myLcd.print("Dgr.= 0'");
-	// delay(500);
-// }
-
-// verifico la scheda SD
-// int SDCardChecking (const int chipSel){
-	// // delay(1);
-	// if (SD.begin(chipSel)) {
-		// // Serial.print("si");
-		// return SD_CONNECTION_DONE;
-	// }
-	// else{
-		// // Serial.print("no");
-		// return SD_CONNECTION_FAILED;
-	// }
-	// // Serial.print("forse");
-// }
 
 int SDinitPlusInfo(const int myChipSel){
 	Sd2Card card;
@@ -257,14 +222,14 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 	int lampCheckingSensorVal=0;
 	// int lampChecingkArray[3]={0,0,0};
 	//delay(2500);
-	/*
-	la logica dietro questo test è la seguente:
-		- rilevo se è gia accesa (valutare se accendere solo quando necessario);
-		- La spegno e rilevo se è spenta ;
-		- La riaccendo e rilevo se è accesa.
-	Ad ogni step vado a salvare l'esito su un array così avrò modo, in caso di problemi, di sapere dove è avvenuto.
-	Tra uno stato e l'altro do il tempo alla resistenza della lampada di spegnersi del tutto per evitare false lettura (verificare se si può abbassare il tempo).
-	*/
+/*
+	* la logica dietro questo test è la seguente:
+	* - rilevo se è gia accesa (valutare se accendere solo quando necessario);
+	* - La spegno e rilevo se è spenta ;
+	* - La riaccendo e rilevo se è accesa.
+	* Ad ogni step vado a salvare l'esito su un array così avrò modo, in caso di problemi, di sapere dove è avvenuto.
+	* Tra uno stato e l'altro do il tempo alla resistenza della lampada di spegnersi del tutto per evitare false lettura (verificare se si può abbassare il tempo).
+*/
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	myLcd.print(".");
 	if(lampCheckingSensorVal<LAMP_CHECKINGSENSOR_THRESHOLD){
@@ -299,9 +264,9 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 }
 
 /*
-	Punzione per eseguire una semplicissima lettura.
-	La tengo per il momento ma in realtà è totalmente inuitle in quanto talmente semplice.
-	Al più bisogna vedere come gestire il campo di lettura in base alle impostazioni di default
+	* Punzione per eseguire una semplicissima lettura.
+	* La tengo per il momento ma in realtà è totalmente inuitle in quanto talmente semplice.
+	* Al più bisogna vedere come gestire il campo di lettura in base alle impostazioni di default
 */
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 	switch(tslReadType){
@@ -321,7 +286,7 @@ uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 }
 
 /*
-	Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
+	* Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
 */
 void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile){
 	delay(1000);
@@ -360,21 +325,61 @@ void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile){
 	}
 }
 
-void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd){
-	(*myFile) = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
-	if((*myFile)){
-		(*myFile).print(read + ";");
-		(*myFile).close();
-	}
-	else{
-		myLcd.clear();
-		myLcd.setCursor(0, 0); myLcd.print("problem...  ):");
-		delay(2500);
-	}
-}
+// void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd){
+	// (*myFile) = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
+	// if((*myFile)){
+		// (*myFile).print(read + ";");
+		// (*myFile).close();
+	// }
+	// else{
+		// myLcd.clear();
+		// myLcd.setCursor(0, 0); myLcd.print("problem...  ):");
+		// delay(2500);
+	// }
+// }
 
 
+// =========================================================================================
 // ========================================== OLD ==========================================
+// =========================================================================================
+
+// Verifico che la comunicazione con il sensore tsl sia funzionante
+// int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd){
+	// // myLcd.clear();
+	// // myLcd.setCursor(0, 0); myLcd.print("Checking TSL...");
+	// if ((*myTsl).begin()){
+		// // myLcd.setCursor(0, 1); myLcd.print("	OK!");
+		// return TSL_CONNECTION_DONE;
+	// } 
+	// else{
+		// return TSL_CONNECTION_FAILED;
+		// // printWiringError(BUZZER_PIN);
+	// }
+// }
+
+// funzione inutile se non per scrivere sullo schermo LCD. DA INCORPORARE CON QUELLA SOPRA
+// void gratingMotorChecking (const int sensMotCheckPin, const int buzzerCheckPin){
+	// gratingMotorZeroPoint(sensMotCheckPin, buzzerCheckPin);
+	// myLcd.clear();
+	// myLcd.setCursor(0, 0); myLcd.print("Motor Setted!");
+	// myLcd.setCursor(0, 1); myLcd.print("Dgr.= 0'");
+	// delay(500);
+// }
+
+// verifico la scheda SD
+// int SDCardChecking (const int chipSel){
+	// // delay(1);
+	// if (SD.begin(chipSel)) {
+		// // Serial.print("si");
+		// return SD_CONNECTION_DONE;
+	// }
+	// else{
+		// // Serial.print("no");
+		// return SD_CONNECTION_FAILED;
+	// }
+	// // Serial.print("forse");
+// }
+
 // int simpleRead(void);
 // int simpleRead(int tslReadType);
 

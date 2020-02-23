@@ -71,7 +71,7 @@
 #define KEYPAD_PIN_COLS_0 					34
 #define KEYPAD_PIN_COLS_1 					33
 #define KEYPAD_PIN_COLS_2 					32
-#define KEYPAD_ANTIDEBOUNCEFILTER_TIME		150
+#define KEYPAD_ANTIDEBOUNCEFILTER_TIME		175
 
 // Pin del piezo/Buzzer
 #define BUZZER_PIN 							46
@@ -87,6 +87,7 @@
 #define LAMP_CHECK_ERROR_PHASE_3			4
 
 // ======== PARAMETRI PER GESTIRE I TASTI DIREZIONALI ========  
+#define BUTTON_ANTIDEBOUNCEFILTER_TIME		100
 #define BUTTON_PIN_BACK 					3
 #define BUTTON_PIN_NEXT						4
 #define BUTTON_PIN_UP 						5
@@ -102,7 +103,7 @@
 	// or pin 53 (on the Mega) - or another pin specified in the call to SD.begin().
 	// Note that even if you don't use the hardware SS pin, it must be left as an output or the SD library won't work. [...]
 
-#define SD_CHIPSELECT 						53
+#define SD_PIN_CHIPSELECT 					53
 #define SD_INITIALIZING_DONE				0
 #define SD_INITIALIZING_CARD_FAILED			1
 #define SD_INITIALIZING_VOLUME_FAILED		2
@@ -124,4 +125,12 @@
 #define DECIMAL_SERIAL_TRASMITTANCE			8
 #define DECIMAL_LCD_ABSORBANCE				6
 #define DECIMAL_SERIAL_ABSORBANCE			8
+
+#define MENU_VOICES_NUMBER					4
+
+#define MENU_LABORATORY						0
+#define MENU_SETTINGS						1
+#define MENU_VOICE_3						2
+#define MENU_VOICE_4						3
+
 #endif
