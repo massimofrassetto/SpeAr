@@ -87,15 +87,18 @@ int m_readSensorVal;
 int m_allSpectrumScanID=0;
 int m_menuArrowCursorPostion=0;
 
+// ===========================================================================================================
+// ================== Inizio fase di preparazione ed inizializzazione dello strumento  =======================
+// ===========================================================================================================
+
 void setup(void){
 	tone(BUZZER_PIN, 500, 100); delay(100);
 	tone(BUZZER_PIN, 300, 200); delay(100);
 	tone(BUZZER_PIN, 500, 400); delay(4300);
 	Serial.begin(SERIAL_BAUDRATE);
 	while (!Serial) {
-		; 												// wait for serial port to connect. Needed for native USB port only
+		;		// wait for serial port to connect. Needed for native USB port only
 	}
-	// serialTest("TEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEST\n");
 	#ifdef DEBUG_SERIAL
 		Serial.println("[===================================================================]");
 		Serial.println("|========================= STARTING SYSTEM =========================|");
@@ -121,6 +124,7 @@ void setup(void){
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> I/O Inizializated;");
 	#endif
+	// Mi connetto all’RTC e verifico che sia in funzione. Se ció non fosse probabilmente bisogna cambiare la pila.
 	#ifdef DEBUG_SERIAL
 		Serial.print(">> RTC Connection...\t\t\t");
 	#endif
@@ -137,11 +141,11 @@ void setup(void){
 				Serial.println(">>\t#RTC is NOT running!");
 				Serial.println(">>\t#Build timestamp will be set!");
 			#endif
-			m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // following line sets the RTC to the date & time this sketch was compiled
-			// rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));  // This line sets the RTC with an explicit date & time, for example to set January 21, 2014 at 3am you would call:
+			m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));				// following line sets the RTC to the date & time this sketch was compiled
+			// rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));					// This line sets the RTC with an explicit date & time, for example to set January 21, 2014 at 3am you would call:
 		}
 		else{
-			// m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); //Imposta l'orario in modo rapido scommentando questa riga
+			// m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));			//Imposta l'orario in modo rapido scommentando questa riga [Stile BRUTAL force] - In futuro l'orario e la data saranno configurabili da pannellino. TODO
 			now = m_rtc.now();
 			#ifdef DEBUG_SERIAL
 				Serial.print(">>\t#Current Time:\t\t\t");
@@ -170,6 +174,7 @@ void setup(void){
 		waitingButtonPressed(BUTTON_PIN_OK, &m_okVal);
 		waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 	}
+	// avvio la comuncazione con la scheda motori (non è gestito il caso di fallita comunicazione TODO
 	AFMS.begin();
 	#ifdef DEBUG_SERIAL
 		Serial.println(">> Motor Inizializated;");
@@ -178,6 +183,7 @@ void setup(void){
 	m_lcd.setCursor(0, 0); m_lcd.print("Starting");
 	m_lcd.setCursor(0, 1); m_lcd.print("Instrument...");
 	delay(500);
+	//Inizializzo la comunicazione con la schedina SD, rilevo alcune informazioni e scrivo subito sul primo file 
 	#ifdef DEBUG_SERIAL
 		Serial.print(">> Creating SD Card connection...\t");
 	#endif
@@ -207,6 +213,9 @@ void setup(void){
 				printWiringError(BUZZER_PIN, m_lcd);
 				break;
 		}
+		#ifdef DEBUG_SERIAL
+			Serial.print(">> Starting TraceLog record...\t");
+		#endif
 		now = m_rtc.now();
 		m_spearTraceLogFile = SD.open(SPEARTRACELOG_FILENAME, FILE_WRITE);
 		if (m_spearTraceLogFile){
@@ -223,11 +232,12 @@ void setup(void){
 			m_spearTraceLogFile.print(now.second(), DEC);
 			m_spearTraceLogFile.println(";--------- Tracelog Started... ---------");
 			m_spearTraceLogFile.close();
-			// Serial.println("	SD WRITED, at least i tried...");
+			Serial.println("DONE");
 		}
 		else{
 			Serial.println("Error opening TraceLog");
-			m_spearTraceLogFile.close();
+			Serial.println("DONE");
+			// m_spearTraceLogFile.close();
 		}
 		// ---------------------------------- non scrive sugli altri file.... -----------------------------
 		// ---------------------------------- indagare perchè... ------------------------------------------
@@ -235,19 +245,21 @@ void setup(void){
 		// m_allSpectrumFile = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
 		// if(m_allSpectrumFile){
 			// m_allSpectrumFile.println("--------- Passed from here ---------");
+			// m_allSpectrumFile.close();
 		// }
 		// else{
 			// Serial.println("Error opening allSpec");
-			// m_allSpectrumFile.close();
+			// // m_allSpectrumFile.close();
 		// }
 		// delay(1000);
 		// m_concAnalysisFile = SD.open(CONCANLYSIS_FILENAME, FILE_WRITE);
 		// if(m_concAnalysisFile){
 			// m_concAnalysisFile.println("--------- Passed from here ---------");
+			// m_concAnalysisFile.close();
 		// }
 		// else{
 			// Serial.println("Error opening conAnalysis");
-			// m_concAnalysisFile.close();
+			// // m_concAnalysisFile.close();
 		// }
 	}
 	else{
@@ -335,7 +347,18 @@ void setup(void){
 	waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 }
 
+// ===========================================================================================================
+// ========================================== Fine Inizializzazione ==========================================
+// ===================================== Inizio programma vero e proprio =====================================
+// ===========================================================================================================
+
 void loop(void){
+	/* Entriamo subito nel menu principale.
+	 * Per navigare tra i vari menu bisogna utilizzare le freccie UP/DOWN.
+	 * Prenendo OK invece si seleziona la voce affianco alla freccia.
+	 * Se si raggiunge la fine o l'inizio dell'elenco il sw è fatto in modo da fermarsi.
+	 * Non si torna all'altro apice del menu.
+	 */
 	m_lcd.clear();
 	m_lcd.setCursor(0, m_menuArrowCursorPostion); m_lcd.print(">");
 	if(m_indexMenuVoices==MENU_VOICES_NUMBER-1 || m_menuArrowCursorPostion==1){
@@ -385,6 +408,7 @@ void loop(void){
 	}
 	waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 	m_refreshScreen=true;
+	// Ora che ho selezione la voce del menu entro nel corrispettivo blocco.
 	switch(m_indexMenuVoices){
 		case(MENU_LABORATORY):{
 			while(!digitalRead(BUTTON_PIN_BACK)){
@@ -393,11 +417,11 @@ void loop(void){
 				#endif
 				m_customKey=0;
 				m_AnalysisModeSelected=false;
-				/*MODES:
-					1	-	SIMPLE READ
-					2	-	ALL SPECTRUM
-					3	-	CONCANALYSIS
-				*/
+				/* MODES:
+				 *	1	-	SIMPLE READ
+				 *	2	-	ALL SPECTRUM
+				 *	3	-	CONCANALYSIS
+				 */
 				while(!m_okVal && !m_backVal){
 					m_okVal=	digitalRead(BUTTON_PIN_OK);
 					m_backVal=	digitalRead(BUTTON_PIN_BACK);
