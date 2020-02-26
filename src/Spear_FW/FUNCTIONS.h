@@ -7,13 +7,10 @@
 // ======================================= PROTOTIPI =======================================
 // =========================================================================================
 
-// int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd);
 void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integrationTime);
-// int rtcChecking(RTC_DS1307 *myRtc);
 void printWiringError(const int alarmPin, LiquidCrystal myLcd);
 void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin, LiquidCrystal myLcd);
 void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
-// int SDCardChecking(const int chipSel);
 int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin, LiquidCrystal myLcd);
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType);
 void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile);
@@ -21,19 +18,27 @@ void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonPressed(int pinButton, bool *buttonVal);
 void waitingButtonReleased(int pinButton, bool* buttonVal);
 int SDinitPlusInfo(const int myChipSel);
-// void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd);
 
+// ========================================== OLD ==========================================
+
+// int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd);
+// int rtcChecking(RTC_DS1307 *myRtc);
+// int SDCardChecking(const int chipSel);
+// void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd);
 // void serialTest(String myString);
 
 // =========================================================================================
 // ======================================= FUNZIONI ========================================
 // =========================================================================================
 // da spostare poi su un CPP
+
 // void serialTest(String myString){
 	// #ifdef SERIAL_OUTPUT
 		// Serial.print(myString);
 	// #endif
 // }
+
+	// Just a Serial.print of the general instrument info
 
 void serialSendInstrumentDetalis(void){
 	Serial.print("|\t#Product Name:\t\t\t"); 			Serial.println(INSTRUMENT_NAME);
@@ -61,10 +66,11 @@ void waitingButtonReleased(int pinButton, bool *buttonVal){
 	delay(BUTTON_ANTIDEBOUNCEFILTER_TIME);
 }
 
-// Funzione per decidere quale sensibilità ed il tempo di integrazione che il mio sensore deve avere.
-// Ora il valore è scolpito in fase di compilazione.
-// In un futuro bisogna informarsi per capire se è possibile modificare questi dati
-// mentre lo spettrofotometro è acceso
+	// Funzione per decidere quale sensibilità e quale tempo di integrazione che il mio sensore deve avere.
+	// Ora il valore è scolpito in fase di compilazione.
+	// In un futuro bisogna informarsi per capire se è possibile modificare questi dati
+	// mentre lo spettrofotometro è acceso
+
 void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integrationTime){
 	switch(gainMultiplier){
 		case TSL_GAIN_LOW:
@@ -100,41 +106,49 @@ void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integra
 			(*myTsl).setTiming(TSL2591_INTEGRATIONTIME_600MS);		// longest integration time (dim light)
 			break;
 	}
-	Serial.print(">>\t#Gain:\t\t\t\t");
+	#ifdef DEBUG_SERIAL
+		Serial.print(">>\t#Gain:\t\t\t\t");
+	#endif
 	tsl2591Gain_t gain = (*myTsl).getGain();
-	switch(gain){
-		case TSL2591_GAIN_LOW:
-			Serial.println("1x(Low)");
-			break;
-		case TSL2591_GAIN_MED:
-			Serial.println("25x(Medium)");
-			break;
-		case TSL2591_GAIN_HIGH:
-			Serial.println("428x(High)");
-			break;
-		case TSL2591_GAIN_MAX:
-			Serial.println("9876x(Max)");
-			break;
-	}
-	Serial.print(">> \t#Timing:\t\t\t"); Serial.print(((*myTsl).getTiming() + 1) * 100, DEC); Serial.println("ms");
-	delay(1);
+	#ifdef DEBUG_SERIAL
+		switch(gain){
+			case TSL2591_GAIN_LOW:
+				Serial.println("1x(Low)");
+				break;
+			case TSL2591_GAIN_MED:
+				Serial.println("25x(Medium)");
+				break;
+			case TSL2591_GAIN_HIGH:
+				Serial.println("428x(High)");
+				break;
+			case TSL2591_GAIN_MAX:
+				Serial.println("9876x(Max)");
+				break;
+		}
+		Serial.print(">> \t#Timing:\t\t\t"); Serial.print(((*myTsl).getTiming() + 1) * 100, DEC); Serial.println("ms");
+		// delay(1);
+	#endif
 }
 
-// Displays some basic information on this sensor from the unified
-// sensor API sensor_t type (see Adafruit_Sensor for more information)
+	// Displays some basic information on this sensor from the unified
+	// sensor API sensor_t type (see Adafruit_Sensor for more information)
+
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl){
 	sensor_t sensor;
 	(*myTsl).getSensor(&sensor);
-	Serial.print (">>\t#Sensor: \t\t\t"); 		Serial.println(sensor.name);
-	Serial.print (">>\t#Driver Ver: \t\t\t"); 	Serial.println(sensor.version);
-	Serial.print (">>\t#Unique ID: \t\t\t"); 	Serial.println(sensor.sensor_id);
-	Serial.print (">>\t#Max Value: \t\t\t"); 	Serial.print(sensor.max_value); 	Serial.println(" lux");
-	Serial.print (">>\t#Min Value: \t\t\t"); 	Serial.print(sensor.min_value); 	Serial.println(" lux");
-	Serial.print (">>\t#Resolution: \t\t\t"); 	Serial.print(sensor.resolution); 	Serial.println(" lux");
+	#ifdef DEBUG_SERIAL
+		Serial.print (">>\t#Sensor: \t\t\t"); 		Serial.println(sensor.name);
+		Serial.print (">>\t#Driver Ver: \t\t\t"); 	Serial.println(sensor.version);
+		Serial.print (">>\t#Unique ID: \t\t\t"); 	Serial.println(sensor.sensor_id);
+		Serial.print (">>\t#Max Value: \t\t\t"); 	Serial.print(sensor.max_value); 	Serial.println(" lux");
+		Serial.print (">>\t#Min Value: \t\t\t"); 	Serial.print(sensor.min_value); 	Serial.println(" lux");
+		Serial.print (">>\t#Resolution: \t\t\t"); 	Serial.print(sensor.resolution); 	Serial.println(" lux");
+	#endif
 }
 
 
-// In caso di errori durante il check questa è la funzione per avvisare l'utente che qualcosa non va.
+	// In caso di errori durante il check questa è la funzione per avvisare l'utente che qualcosa non va.
+
 void printWiringError (const int alarmPin, LiquidCrystal myLcd){
 	myLcd.clear();
 	myLcd.setCursor(0, 0); myLcd.print("OH-oh..");
@@ -143,16 +157,12 @@ void printWiringError (const int alarmPin, LiquidCrystal myLcd){
 	tone(alarmPin, 400, 1000);
 }
 
-// Azzero la posizione della griglia di rifrazione
+	// Azzero la posizione della griglia di rifrazione
+
 void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, LiquidCrystal myLcd, Adafruit_StepperMotor *myMotor){
 	myLcd.clear();
 	myLcd.setCursor(0, 0); myLcd.print("Grating Motor");
 	myLcd.setCursor(0, 1); myLcd.print("Homing...");
-	// int positionMotorSensorVal=analogRead(sensMotPin);
-	// while(positionMotorSensorVal<=MOTOR_POSITIONSENSOR_THRESHOLD){
-		// positionMotorSensorVal=analogRead(sensMotPin);
-		// myMotor->step(1, BACKWARD, SINGLE); 
-	// }
 	//proseguo fintanto che non incontro lo zero macchina (quando la fotocellula vede la fessura nella "ruota fonica")
 	while(analogRead(sensMotCheckPin)<=MOTOR_POSITIONSENSOR_THRESHOLD){
 		myMotor->step(1, BACKWARD, SINGLE); 
@@ -165,6 +175,7 @@ void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, Liqu
 	myLcd.setCursor(0, 1); myLcd.print("Dgr.= 0'");
 }
 
+	// Funzione per scrivere qualche info della schedina SD.
 int SDinitPlusInfo(const int myChipSel){
 	Sd2Card card;
 	SdVolume volume;
@@ -215,25 +226,21 @@ int SDinitPlusInfo(const int myChipSel){
 	}
 }
 
-// verifico che la lampada sia in funzione e che il relè cambi di stato.
-// Bisognerebbe gestire anche il punto in viene generato l'errore visto che utilizzo un array
+	// verifico che la lampada sia in funzione e che il relè cambi di stato.
+	// Bisognerebbe gestire anche il punto in viene generato l'errore visto che utilizzo un array
+
 int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin, LiquidCrystal myLcd){
 	int lampCheckingErrorSum=0;
 	int lampCheckingSensorVal=0;
-	// int lampChecingkArray[3]={0,0,0};
-	//delay(2500);
-/*
-	* la logica dietro questo test è la seguente:
-	* - rilevo se è gia accesa (valutare se accendere solo quando necessario);
-	* - La spegno e rilevo se è spenta ;
-	* - La riaccendo e rilevo se è accesa.
-	* Ad ogni step vado a salvare l'esito su un array così avrò modo, in caso di problemi, di sapere dove è avvenuto.
-	* Tra uno stato e l'altro do il tempo alla resistenza della lampada di spegnersi del tutto per evitare false lettura (verificare se si può abbassare il tempo).
-*/
+	 // la logica dietro questo test è la seguente:
+	 //	- rilevo se è gia accesa (valutare se accendere solo quando necessario);
+	 // - La spegno e rilevo se è spenta ;
+	 // - La riaccendo e rilevo se è accesa.
+	 // Ad ogni check vado a salvare l'esito su un array così avrò modo, in caso di problemi, di sapere dove è avvenuto.
+	 // Tra uno stato e l'altro do il tempo alla resistenza della lampada di spegnersi del tutto per evitare false lettura (verificare se si può abbassare il tempo).
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	myLcd.print(".");
 	if(lampCheckingSensorVal<LAMP_CHECKINGSENSOR_THRESHOLD){
-		// lampChecingkArray[0]=1;
 		lampCheckingErrorSum+=LAMP_CHECK_ERROR_PHASE_1;
 	}
 	lampState=LOW;
@@ -242,7 +249,6 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	myLcd.print(".");
 	if(lampCheckingSensorVal>LAMP_CHECKINGSENSOR_THRESHOLD){
-		// lampChecingkArray[1]=1;
 		lampCheckingErrorSum+=LAMP_CHECK_ERROR_PHASE_2;
 	}
 	lampState=HIGH;
@@ -251,7 +257,6 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 	lampCheckingSensorVal=analogRead(lampSensPin);
 	myLcd.print(".");
 	if(lampCheckingSensorVal<LAMP_CHECKINGSENSOR_THRESHOLD){
-		// lampChecingkArray[2]=1;
 		lampCheckingErrorSum+=LAMP_CHECK_ERROR_PHASE_3;
 	}
 	if(lampCheckingErrorSum==LAMP_CHECK_PASSED){
@@ -263,11 +268,10 @@ int lampChecking (const int lampSensPin, const int lampStatePin, int lampState, 
 	delay(1500);
 }
 
-/*
-	* Punzione per eseguire una semplicissima lettura.
-	* La tengo per il momento ma in realtà è totalmente inuitle in quanto talmente semplice.
-	* Al più bisogna vedere come gestire il campo di lettura in base alle impostazioni di default
-*/
+	// Funzione per eseguire una semplicissima lettura.
+	// La tengo per il momento ma in realtà è totalmente inuitle in quanto talmente semplice.
+	// Al più bisogna vedere come gestire il campo di lettura in base alle impostazioni di default
+
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 	switch(tslReadType){
 		case(TSL_READTYPE_VISIBLE):{
@@ -285,9 +289,8 @@ uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 	}
 }
 
-/*
-	* Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
-*/
+	// Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
+	
 void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile){
 	delay(1000);
 	myLcd.clear();
@@ -339,9 +342,7 @@ void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile){
 // }
 
 
-// =========================================================================================
 // ========================================== OLD ==========================================
-// =========================================================================================
 
 // Verifico che la comunicazione con il sensore tsl sia funzionante
 // int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd){

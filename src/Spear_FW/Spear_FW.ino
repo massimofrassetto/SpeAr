@@ -353,12 +353,11 @@ void setup(void){
 // ===========================================================================================================
 
 void loop(void){
-	/* Entriamo subito nel menu principale.
-	 * Per navigare tra i vari menu bisogna utilizzare le freccie UP/DOWN.
-	 * Prenendo OK invece si seleziona la voce affianco alla freccia.
-	 * Se si raggiunge la fine o l'inizio dell'elenco il sw è fatto in modo da fermarsi.
-	 * Non si torna all'altro apice del menu.
-	 */
+	// Entriamo subito nel menu principale.
+	// Per navigare tra i vari menu bisogna utilizzare le freccie UP/DOWN.
+	// Prenendo OK invece si seleziona la voce affianco alla freccia.
+	// Se si raggiunge la fine o l'inizio dell'elenco il sw è fatto in modo da fermarsi.
+	// Non è possibile saltare dall'ultima voce alla prima (per il momento).
 	m_lcd.clear();
 	m_lcd.setCursor(0, m_menuArrowCursorPostion); m_lcd.print(">");
 	if(m_indexMenuVoices==MENU_VOICES_NUMBER-1 || m_menuArrowCursorPostion==1){
@@ -410,6 +409,7 @@ void loop(void){
 	m_refreshScreen=true;
 	// Ora che ho selezione la voce del menu entro nel corrispettivo blocco.
 	switch(m_indexMenuVoices){
+		// Menu per gestire tutte le varie tipologie di analisi
 		case(MENU_LABORATORY):{
 			while(!digitalRead(BUTTON_PIN_BACK)){
 				#ifdef DEBUG_SERIAL
@@ -417,16 +417,16 @@ void loop(void){
 				#endif
 				m_customKey=0;
 				m_AnalysisModeSelected=false;
-				/* MODES:
-				 *	1	-	SIMPLE READ
-				 *	2	-	ALL SPECTRUM
-				 *	3	-	CONCANALYSIS
-				 */
+				// MODES:
+				// 1 => SIMPLE READ
+				// 2 => ALL SPECTRUM
+				// 3 => CONCANALYSIS
 				while(!m_okVal && !m_backVal){
 					m_okVal=	digitalRead(BUTTON_PIN_OK);
 					m_backVal=	digitalRead(BUTTON_PIN_BACK);
 					m_upVal=	digitalRead(BUTTON_PIN_UP);
 					m_downVal=	digitalRead(BUTTON_PIN_DOWN);
+					// Questo if serve a non scrivere la prima stringa (fissa per il momento) tutte le volte che si passa dal di qua ma solo la prima volta.
 					if(m_refreshScreen){
 						m_lcd.clear();
 						m_lcd.setCursor(0, 0); m_lcd.print("Sel. Analysis:");
@@ -452,6 +452,7 @@ void loop(void){
 						m_refreshScreen=true;
 					}
 					if(m_refreshScreen){
+						// Pulisco la mia riga in quanto non so se la prossima stringa andrà a coprire tutta la precedente.
 						m_lcd.setCursor(0, 1); m_lcd.print("                ");
 						m_lcd.setCursor(0, 1); m_lcd.print(String(m_indexAnalysisMode+1) + "-" + m_analysisModeLcdString[m_indexAnalysisMode]);
 						m_refreshScreen=false;
@@ -470,6 +471,9 @@ void loop(void){
 						Serial.println(">> Waiting confirm...");
 					#endif
 					switch(m_indexAnalysisMode){
+						// Semplice lettura di assorbanza.
+						// Dato un bianco di base posso inserire tutti i campioni che voglio.
+						// Premendo "Back" si esce tornando indietro al menu di selezione delle modalità.
 						case(ANALYSISMODE_SIMPLEREAD):{
 							m_lcd.clear();
 							m_lcd.setCursor(0, 0); m_lcd.print("Simple Read");
@@ -546,6 +550,7 @@ void loop(void){
 										Serial.println();
 									#endif
 									m_nReadsRequested=m_keyPadString.toInt();
+									// Per avere una media decente, o un valore "affidabile" si considera una media di almeno MIN_REPLICATES
 									if(m_nReadsRequested<MIN_REPLICATES){
 										m_nReadsCorrected=MIN_REPLICATES;
 										#ifdef DEBUG_SERIAL
@@ -566,7 +571,7 @@ void loop(void){
 									m_lcd.setCursor(0, 1); m_lcd.print("Pos.ing motor...");
 									m_gratingMotorFutureSteps=map(m_lambdaCorrected, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH, MOTOR_STEPS_GRATINGLIMIT_HIGH, MOTOR_STEPS_GRATINGLIMIT_LOW);
 									gratingMotorZeroPoint(MOTOR_PIN_POSITIONSENSOR, BUZZER_PIN, m_lcd, m_grtMotor);			//serve davvero?
-									m_grtMotor->step(m_gratingMotorFutureSteps, FORWARD, MOTOR_STEPTYPE);
+									m_grtMotor->step(m_gratingMotorFutureSteps, FORWARD, MOTOR_STEP_TYPE);
 									m_grtMotor->release();
 									#ifdef DEBUG_SERIAL
 										Serial.println(">> Positioning motor done! Waiting confirm to proceed...");
@@ -636,7 +641,15 @@ void loop(void){
 											#ifdef DEBUG_SERIAL
 												Serial.println(">> Sample reads done! Calculating results...");
 											#endif
+											/* ----------------- Per i prossimi due calcoli è importante ricorda che stiamo lavorando cone delle medie ----------------- */
+											// Si definisce Trasmittanza (T) il rapporto tra l'intensità della luce I in uscita dalla cuvetta e l'intensità I_0 delle luce incidente.
+											// 		T=I/I_0
+											// Non ha unità di misura e può assumere qualsiasi valore >=0.
 											float trasmittance	=	(m_sumSampleReadsVal/(float)m_nReadsCorrected)/(m_sumBackgroundReadsVal/(float)m_nReadsCorrected);
+											// Si definisce Assorbanza A come il prodotto della concentrazione C (in moli/litro) della sostanza che assorbe la radiazione, per il cammino ottico b percorso dalla luce, per il coefficiente di assorbimento ε.
+											//		A=ε*b*C
+											// Inoltre sappiamo che esiste una correlazione tra assorbanza e trasmittanza di natura logaritmica:
+											//		A=log10(1/T)=log10(I_0/I)
 											float absorbance	=	log10(1/((((m_sumSampleReadsVal/(float)m_nReadsCorrected)/(m_sumBackgroundReadsVal/(float)m_nReadsCorrected))))); //verificare il 1000
 											m_lcd.clear();
 											m_lcd.setCursor(0, 0); m_lcd.print("Abs Sample:");
@@ -651,16 +664,15 @@ void loop(void){
 												Serial.println(">> [---------------------------------------------------]");
 											#endif
 										}
-										//m_okVal=LOW;
 									}
 									m_backVal=LOW;
 								}
 							}
 							waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
-							// m_backVal=LOW;
 							m_refreshScreen=true;
 							break;
 						}
+						// In questa modalità è possibile eseguire una sorta di "Scansione spettrale" del composto, utile per determinare la lambdaMax da utilizzare in fase di analisi di concentrazione.
 						case(ANALYSISMODE_ALLSPECTRUM):{
 							m_lcd.clear();
 							m_lcd.setCursor(0, 0); m_lcd.print("All Spectrum");
@@ -825,6 +837,11 @@ void loop(void){
 							m_refreshScreen=true;
 							break;				
 						}
+						// Questa è la modalità più complessa.
+						// Qui è possiible istruire lo strumento a calcore una determinata concentrazione dopo essersi costruiti una retta di regressione lineare.
+						// Si parte facendo leggere allo strumento campioni a concentrazione nota associandogli una certa assorbanza.
+						// Si prosegue calcolando la linearità tramite il metodo dei minimi quadrati.
+						// Si termina sottoponendo ad esame i campioni di cui voglia sapere la concentrazione.
 						case ANALYSISMODE_CONCANALYSIS:{
 							m_lcd.clear();
 							m_lcd.setCursor(0, 0); m_lcd.print("Conc. Analysis");
@@ -854,8 +871,8 @@ void loop(void){
 		case(MENU_SETTINGS):{
 			//	>> ======================= TODO ======================= << 
 			m_lcd.clear();
-			m_lcd.setCursor(0, 0); m_lcd.print("!!BIT AT WORK!!S");
-			m_lcd.setCursor(0, 1); m_lcd.print("!DON'T DISTURB!S");
+			m_lcd.setCursor(0, 0); m_lcd.print("Settings Menu");
+			m_lcd.setCursor(0, 1); m_lcd.print("Work in Progress");
 			while(!digitalRead(BUTTON_PIN_BACK)){
 				;
 			}
