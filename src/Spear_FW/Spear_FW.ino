@@ -56,8 +56,8 @@ bool m_refreshScreen=true;
 int m_gratingMotorFutureSteps;
 int m_gratingMotorCurrentSteps;
 
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-DateTime now;
+char m_daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+DateTime m_now;
 
 int m_lambdaMin;
 int m_lambdaMax;
@@ -146,22 +146,13 @@ void setup(void){
 		}
 		else{
 			// m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));			//Imposta l'orario in modo rapido scommentando questa riga [Stile BRUTAL force] - In futuro l'orario e la data saranno configurabili da pannellino. TODO
-			now = m_rtc.now();
+			m_now = m_rtc.now();
 			#ifdef DEBUG_SERIAL
 				Serial.print(">>\t#Current Time:\t\t\t");
-				Serial.print(now.year(), DEC);
-				Serial.print('/');
-				Serial.print(now.month(), DEC);
-				Serial.print('/');
-				Serial.print(now.day(), DEC);
+				Serial.print(getTimeIntoString(m_now, ";"));
 				Serial.print(" (");
-				Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-				Serial.print(") ");
-				Serial.print(now.hour(), DEC);
-				Serial.print(':');
-				Serial.print(now.minute(), DEC);
-				Serial.print(':');
-				Serial.println(now.second(), DEC);
+				Serial.print(m_daysOfTheWeek[m_now.dayOfTheWeek()]);
+				Serial.print(")");
 			#endif
 		}
 	}
@@ -216,20 +207,10 @@ void setup(void){
 		#ifdef DEBUG_SERIAL
 			Serial.print(">> Starting TraceLog record...\t");
 		#endif
-		now = m_rtc.now();
+		m_now = m_rtc.now();
 		m_spearTraceLogFile = SD.open(SPEARTRACELOG_FILENAME, FILE_WRITE);
 		if (m_spearTraceLogFile){
-			m_spearTraceLogFile.print(now.year(), DEC);
-			m_spearTraceLogFile.print('/');
-			m_spearTraceLogFile.print(now.month(), DEC);
-			m_spearTraceLogFile.print('/');
-			m_spearTraceLogFile.print(now.day(), DEC);
-			m_spearTraceLogFile.print(';');
-			m_spearTraceLogFile.print(now.hour(), DEC);
-			m_spearTraceLogFile.print(':');
-			m_spearTraceLogFile.print(now.minute(), DEC);
-			m_spearTraceLogFile.print(':');
-			m_spearTraceLogFile.print(now.second(), DEC);
+			m_spearTraceLogFile.print(getTimeIntoString(m_now, ";"));
 			m_spearTraceLogFile.println(";--------- Tracelog Started... ---------");
 			m_spearTraceLogFile.close();
 			Serial.println("DONE");
@@ -754,8 +735,8 @@ void loop(void){
 									}
 									m_okVal=LOW;
 									//	>> ======================= TODO ======================= << 
-									now = m_rtc.now();
-									// backgroundSensor(m_lcd, now, m_allSpectrumFile);
+									m_now = m_rtc.now();
+									// backgroundSensor(m_lcd, m_now, m_allSpectrumFile);
 									//	>> ---------------------------------------------------------------------------------------------------------------------- << 
 									delay(1000);
 									m_lcd.clear();
@@ -770,19 +751,7 @@ void loop(void){
 										m_allSpectrumFile.print("SerialNumber:  ");
 										m_allSpectrumFile.println("[__________]");
 										m_allSpectrumFile.print("Timestamp:\t");
-										m_allSpectrumFile.print(now.year(), DEC);
-										m_allSpectrumFile.print('/');
-										m_allSpectrumFile.print(now.month(), DEC);
-										m_allSpectrumFile.print('/');
-										m_allSpectrumFile.print(now.day(), DEC);
-										// m_allSpectrumFile.print(" (");
-										// m_allSpectrumFile.print(daysOfTheWeek[now.dayOfTheWeek()]);
-										// m_allSpectrumFile.print(") ");
-										m_allSpectrumFile.print(now.hour(), DEC);
-										m_allSpectrumFile.print(':');
-										m_allSpectrumFile.print(now.minute(), DEC);
-										m_allSpectrumFile.print(':');
-										m_allSpectrumFile.println(now.second(), DEC);
+										m_allSpectrumFile.print(getTimeIntoString(m_now, ";"));
 										m_allSpectrumFile.println("-------------------------------------------------");
 										m_allSpectrumFile.close();
 									}

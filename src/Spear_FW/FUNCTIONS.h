@@ -18,6 +18,7 @@ void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonPressed(int pinButton, bool *buttonVal);
 void waitingButtonReleased(int pinButton, bool* buttonVal);
 int SDinitPlusInfo(const int myChipSel);
+String getTimeIntoString(DateTime now, char separator);
 
 // ========================================== OLD ==========================================
 
@@ -64,6 +65,21 @@ void waitingButtonReleased(int pinButton, bool *buttonVal){
 	}
 	(*buttonVal)=false;
 	delay(BUTTON_ANTIDEBOUNCEFILTER_TIME);
+}
+	// TOTEST
+String getTimeIntoString(DateTime now, char separator){
+	String dateTimeStringForm = String(now.year(), DEC)		+
+								"/"							+
+								String(now.month(), DEC)	+
+								"/"							+
+								String(now.day(), DEC)		+
+								separator					+
+								String(now.hour(), DEC)		+
+								":"							+
+								String(now.minute(), DEC)	+
+								":"							+
+								String(now.second(), DEC);
+	return dateTimeStringForm;
 }
 
 	// Funzione per decidere quale sensibilità e quale tempo di integrazione che il mio sensore deve avere.
