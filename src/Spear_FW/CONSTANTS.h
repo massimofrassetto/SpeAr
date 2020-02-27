@@ -14,19 +14,19 @@
 // #define TSL_CONNECTION_DONE					0
 // #define TSL_CONNECTION_FAILED				1
 
-#define TSL_GAIN_LOW						0					//Indici per gestire il Gain di lettura
+#define TSL_GAIN_LOW						0					// Indici per gestire il Gain di lettura
 #define TSL_GAIN_MED						1
 #define TSL_GAIN_HIGH						2
 #define TSL_GAIN_MAX						3
 
-#define TSL_INTEGRATIONTIME_100ms			0					//Indici per gestire il tempo di integrazione della lettura
+#define TSL_INTEGRATIONTIME_100ms			0					// Indici per gestire il tempo di integrazione della lettura
 #define TSL_INTEGRATIONTIME_200ms			1
 #define TSL_INTEGRATIONTIME_300ms			2
 #define TSL_INTEGRATIONTIME_400ms			3
 #define TSL_INTEGRATIONTIME_500ms			4
 #define TSL_INTEGRATIONTIME_600ms			5
 
-#define TSL_READTYPE_VISIBLE				0					//Indici per gestire la tipologia di lettura
+#define TSL_READTYPE_VISIBLE				0					// Indici per gestire la tipologia di lettura
 #define TSL_READTYPE_FULLSPECTRUM			1
 #define TSL_READTYPE_INFRARED				2
 
@@ -48,17 +48,17 @@
 // ======== PARAMETRI PER GESTIRE IL MOTORE STEPPER ======== 
 // Parametri inizializzazione driver adafruit
 #define MOTOR_PORT 							2
-#define MOTOR_STEPS_PER_REVOLUTION 			200					//[STEP]
-#define MOTOR_SPEED_RPM						50					//[RPM]
+#define MOTOR_STEPS_PER_REVOLUTION 			200					// [STEP]
+#define MOTOR_SPEED_RPM						50					// [RPM]
 #define MOTOR_STEP_TYPE						SINGLE
 // #define MOTOR_STEP_TYPE						DOUBLE
 // #define MOTOR_STEP_TYPE						INTERLEAVE
 // #define MOTOR_STEP_TYPE						MICROSTEP
 // Parametri per far combaciare gli estremi del range delle lunghezze d'onda le posizioni di riferimento
-#define MOTOR_STEPS_GRATINGLIMIT_LOW		850					//[STEP] corrisponde a SPECTRALIMIT_LOW - empirical/arbitrary value for the momento
-#define MOTOR_STEPS_GRATINGLIMIT_HIGH 		1250				//[STEP] corrisponde a SPECTRALIMIT_HIGH - empirical/arbitrary value for the momento
-#define MOTOR_STEPS_MACHINEZERO		 		1050				//[STEP]Zero macchina. Questi sono gli step che servono per portare la normale della superficia di rifrazione normale alla direzione dei raggi della sorgente luminosa. - empirical/arbitrary value for the momento
-#define MOTOR_POSITIONSENSOR_THRESHOLD		470					//[VALORE ANALOGICO 0%1024]valore sotto il quale considero il sensore ostruito e quindi non in zero 
+#define MOTOR_STEPS_GRATINGLIMIT_LOW		850					// [STEP] corrisponde a SPECTRALIMIT_LOW - empirical/arbitrary value for the momento
+#define MOTOR_STEPS_GRATINGLIMIT_HIGH 		1250				// [STEP] corrisponde a SPECTRALIMIT_HIGH - empirical/arbitrary value for the momento
+#define MOTOR_STEPS_MACHINEZERO		 		1050				// [STEP]Zero macchina. Questi sono gli step che servono per portare la normale della superficia di rifrazione normale alla direzione dei raggi della sorgente luminosa. - empirical/arbitrary value for the momento
+#define MOTOR_POSITIONSENSOR_THRESHOLD		470					// [VALORE ANALOGICO 0%1024]valore sotto il quale considero il sensore ostruito e quindi non in zero 
 #define MOTOR_PIN_POSITIONSENSOR 			A8
 
 // ======== PARAMETRI PER GESTIRE IL TASTIERINO NUMERICO ========  
@@ -79,8 +79,8 @@
 // ======== PARAMETRI PER GESTIRE LA LAMPADA ========  
 #define LAMP_PIN_SWITCH 					25
 #define LAMP_PIN_CHECKINGSENSOR 			A9
-#define LAMP_CHECKINGSENSOR_THRESHOLD 		460					//[VALORE ANALOGICO 0%1024] valore sotto il quale considero la lampada spenta - empirical/arbitrary value for the momento
-#define LAMP_CHECKING_TIMEBREAK 			250					//[MILLISECONDI] tempo di attesa da un cambio di stato e l'altro per dare alla resistenza il tempo di scaricarsi - empirical/arbitrary value for the momento
+#define LAMP_CHECKINGSENSOR_THRESHOLD 		460					// [VALORE ANALOGICO 0%1024] valore sotto il quale considero la lampada spenta - empirical/arbitrary value for the momento
+#define LAMP_CHECKING_TIMEBREAK 			250					// [MILLISECONDI] tempo di attesa da un cambio di stato e l'altro per dare alla resistenza il tempo di scaricarsi - empirical/arbitrary value for the momento
 #define LAMP_CHECK_PASSED					0
 #define LAMP_CHECK_ERROR_PHASE_1			1
 #define LAMP_CHECK_ERROR_PHASE_2			2
@@ -116,9 +116,9 @@
 #define ANALYSISMODE_CONCANALYSIS			2
 
 // limiti dello speettro di analisi per il momento sono sul visibile e sono abbastanza empirici
-#define SPECTRALIMIT_LOW					380					//[NANOMETRI] corrisponde a MOTOR_STEPS_GRATINGLIMIT_LOW - empirical/arbitrary value for the momento
-#define SPECTRALIMIT_HIGH					780					//[NANOMETRI] corrisponde a MOTOR_STEPS_GRATINGLIMIT_HIGH - empirical/arbitrary value for the momento
-#define MIN_REPLICATES						5					//Numero minimo di letture per considerare affidabile la media.
+#define SPECTRALIMIT_LOW					380					// [NANOMETRI] corrisponde a MOTOR_STEPS_GRATINGLIMIT_LOW - empirical/arbitrary value for the momento
+#define SPECTRALIMIT_HIGH					780					// [NANOMETRI] corrisponde a MOTOR_STEPS_GRATINGLIMIT_HIGH - empirical/arbitrary value for the momento
+#define MIN_REPLICATES						5					// Numero minimo di letture per considerare affidabile la media.
 
 // Semplici costanati per gestire quanti decimali mostrare a seconda dei casi 
 #define DECIMAL_LCD_TRASMITTANCE			6
@@ -126,9 +126,9 @@
 #define DECIMAL_LCD_ABSORBANCE				6
 #define DECIMAL_SERIAL_ABSORBANCE			8
 
-#define MENU_VOICES_NUMBER					4					//numero di voci del menu proncipale (ricordarsi di inserire le stringhe aggiuntive se si aumentano)
+#define MENU_VOICES_NUMBER					4					// numero di voci del menu proncipale (ricordarsi di inserire le stringhe aggiuntive se si aumentano)
 
-//Indici delle voci del menu
+// Indici delle voci del menu
 #define MENU_LABORATORY						0
 #define MENU_SETTINGS						1
 #define MENU_VOICE_3						2

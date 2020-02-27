@@ -18,7 +18,7 @@ void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonPressed(int pinButton, bool *buttonVal);
 void waitingButtonReleased(int pinButton, bool* buttonVal);
 int SDinitPlusInfo(const int myChipSel);
-String getTimeIntoString(DateTime now, char separator);
+String getTimeIntoString(DateTime now);
 
 // ========================================== OLD ==========================================
 
@@ -66,14 +66,14 @@ void waitingButtonReleased(int pinButton, bool *buttonVal){
 	(*buttonVal)=false;
 	delay(BUTTON_ANTIDEBOUNCEFILTER_TIME);
 }
-	// TOTEST
-String getTimeIntoString(DateTime now, char separator){
+
+String getTimeIntoString(DateTime now){
 	String dateTimeStringForm = String(now.year(), DEC)		+
 								"/"							+
 								String(now.month(), DEC)	+
 								"/"							+
 								String(now.day(), DEC)		+
-								separator					+
+								";"					+
 								String(now.hour(), DEC)		+
 								":"							+
 								String(now.minute(), DEC)	+
@@ -174,6 +174,7 @@ void printWiringError (const int alarmPin, LiquidCrystal myLcd){
 }
 
 	// Azzero la posizione della griglia di rifrazione
+	// TODO -> myMotor è una variabile globale...
 
 void gratingMotorZeroPoint (const int sensMotCheckPin, const int buzzerPin, LiquidCrystal myLcd, Adafruit_StepperMotor *myMotor){
 	myLcd.clear();
