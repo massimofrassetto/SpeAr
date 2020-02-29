@@ -7,6 +7,7 @@
 // ======================================= PROTOTIPI =======================================
 // =========================================================================================
 
+void serialSendSystemDetalis(void);
 void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integrationTime);
 void printWiringError(const int alarmPin, LiquidCrystal myLcd);
 void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin, LiquidCrystal myLcd);
@@ -17,6 +18,8 @@ void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile);
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonPressed(int pinButton, bool *buttonVal);
 void waitingButtonReleased(int pinButton, bool* buttonVal);
+void waitingButtonPressedFiltered(int pinButton, bool *buttonVal);
+void waitingButtonReleasedFiltered(int pinButton, bool *buttonVal);
 int SDinitPlusInfo(const int myChipSel);
 String getTimeIntoString(DateTime now);
 
@@ -40,8 +43,7 @@ String getTimeIntoString(DateTime now);
 // }
 
 	// Just a Serial.print of the general instrument info
-
-void serialSendInstrumentDetalis(void){
+void serialSendSystemDetalis(void){
 	Serial.print("|\t#Product Name:\t\t\t"); 			Serial.println(INSTRUMENT_NAME);
 	Serial.print("|\t#Model:\t\t\t\t"); 				Serial.println(MODEL_VERSION);
 	Serial.print("|\t#Firmware:\t\t\t"); 				Serial.println(FIRMWARE_VERSION);
@@ -49,6 +51,14 @@ void serialSendInstrumentDetalis(void){
 	Serial.print("|\t#Build Time:\t\t\t");				Serial.println(BUILD_TIMESTAP_TIME);
 	Serial.print("|\t#Autor Name:\t\t\t"); 				Serial.println(AUTOR_NAME);
 	Serial.print("|\t#Email:\t\t\t\t"); 				Serial.println(AUTOR_EMAIL);
+}
+
+// 
+void serialSendInstrumentDetalis(void){
+	Serial.print("|\t#Spectral lower Limit [nm]:\t"); 	Serial.println(SPECTRALIMIT_LOW);
+	Serial.print("|\t#Spectral Higher Limit [nm]:\t"); 	Serial.println(SPECTRALIMIT_HIGH);
+	Serial.print("|\t#ID TSL reading mode:\t\t"); 		Serial.println(ANALYSISMODE_SIMPLEREAD);
+	Serial.print("|\t#DeltaLambda [nm/step]:\t\t");		Serial.println((SPECTRALIMIT_HIGH-SPECTRALIMIT_LOW)/(MOTOR_STEPS_GRATINGLIMIT_HIGH-MOTOR_STEPS_GRATINGLIMIT_LOW));
 }
 
 void waitingButtonPressed(int pinButton, bool *buttonVal){
@@ -65,6 +75,68 @@ void waitingButtonReleased(int pinButton, bool *buttonVal){
 	}
 	(*buttonVal)=false;
 	delay(BUTTON_ANTIDEBOUNCEFILTER_TIME);
+}
+
+void waitingButtonPressedFiltered(int pinButton, bool *buttonVal){
+	int filterTime=BUTTON_ANTIDEBOUNCEFILTER_TIME;
+	unsigned long lastStartTimeRecording=0;
+	unsigned long lastStopTimeRecording=0;
+	bool buttonPressValid=false;
+	bool pinButtonVal=false;
+	while(!buttonPressValid){
+		// while(!digitalRead(pinButton)){
+		while(!pinButtonVal){
+			pinButtonVal=digitalRead(pinButton);
+			lastStartTimeRecording=millis();
+			// #ifdef DEBUG_SERIAL
+				// Serial.print(".");
+			// #endif
+		}
+		pinButtonVal=0;
+		// #ifdef DEBUG_SERIAL
+			// Serial.print("\n>> Pressed: "); Serial.print(lastStartTimeRecording);
+		// #endif
+		while(digitalRead(pinButton)&&!buttonPressValid){
+			lastStopTimeRecording=millis();
+			if(lastStopTimeRecording-lastStartTimeRecording>=filterTime){
+				buttonPressValid=true;
+			}
+		}
+		// #ifdef DEBUG_SERIAL
+			// Serial.print(" - Released: "); Serial.print(lastStopTimeRecording); Serial.print(" - Result Press Test: "); Serial.print(buttonPressValid); Serial.print("("); Serial.print(lastStopTimeRecording-lastStartTimeRecording); Serial.print("/"); Serial.print(filterTime); Serial.println(")");
+		// #endif
+	}
+	// buttonPressValid=false;
+	// lastStartTimeRecording=0;
+	// lastStopTimeRecording=0;
+	(*buttonVal)=true;
+}
+ // >> ------------------------------------ TODO ------------------------------------- <<
+ // >> -------------------------------- DA VERIFICARE -------------------------------- <<
+ // >> -------------------------------- Serve davvero? ------------------------------- <<
+void waitingButtonReleasedFiltered(int pinButton, bool *buttonVal){
+	int filterTime=BUTTON_ANTIDEBOUNCEFILTER_TIME;
+	unsigned long lastStartTimeRecording=0;
+	unsigned long lastStopTimeRecording=0;
+	bool buttonReleasedValid=false;
+	while(!buttonReleasedValid){
+		while(digitalRead(pinButton)){
+			lastStartTimeRecording=millis();
+		}
+		#ifdef DEBUG_SERIAL
+			Serial.print(">> Released: "); Serial.print(lastStartTimeRecording);
+		#endif
+		while(!digitalRead(pinButton)&&!buttonReleasedValid){
+			lastStopTimeRecording=millis();
+			if(lastStopTimeRecording-lastStartTimeRecording>=filterTime){
+				buttonReleasedValid=true;
+			}
+		}
+		#ifdef DEBUG_SERIAL
+			Serial.print(" - Pressed: "); Serial.print(lastStopTimeRecording); Serial.print(" - Result Press Test: "); Serial.print(buttonReleasedValid); Serial.print("("); Serial.print(lastStopTimeRecording-lastStartTimeRecording); Serial.print("/"); Serial.print(filterTime); Serial.println(")");
+		#endif
+	}
+	(*buttonVal)=false;
 }
 
 String getTimeIntoString(DateTime now){
@@ -222,8 +294,7 @@ int SDinitPlusInfo(const int myChipSel){
 			}
 			Serial.print(">>\t#Clusters:\t\t\t");			Serial.println(volume.clusterCount());
 			Serial.print(">>\t#Blocks x Cluster:\t\t");		Serial.println(volume.blocksPerCluster());
-			Serial.print(">>\t#Total Blocks:\t\t\t");			Serial.println(volume.blocksPerCluster() * volume.clusterCount());
-			Serial.println();
+			Serial.print(">>\t#Total Blocks:\t\t\t");		Serial.println(volume.blocksPerCluster() * volume.clusterCount());
 			uint32_t volumesize;								// print the type and size of the first FAT-type volume
 			Serial.print(">>\t#Volume type is:\t\tFAT");	Serial.println(volume.fatType(), DEC);
 			volumesize = volume.blocksPerCluster();				// clusters are collections of blocks
@@ -234,10 +305,10 @@ int SDinitPlusInfo(const int myChipSel){
 			Serial.print(">>\t#Volume size (Mb):\t\t");		Serial.println(volumesize);
 			Serial.print(">>\t#Volume size (Gb):\t\t");		Serial.println((float)volumesize / 1024.0);
 			Serial.println(">>\t#Files found on the card (name, date and size in bytes):");
-			Serial.println("------------------------------------------------------------");
+			Serial.println("---------------------------------------------------------------------");
 			root.openRoot(volume);
 			root.ls( LS_R | LS_DATE | LS_SIZE );				// list all files in the card with date and size
-			Serial.println("------------------------------------------------------------");
+			Serial.println("---------------------------------------------------------------------");
 			return SD_INITIALIZING_DONE;
 		#endif
 	}
