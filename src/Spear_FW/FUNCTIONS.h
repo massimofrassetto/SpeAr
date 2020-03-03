@@ -14,7 +14,6 @@ void gratingMotorZeroPoint(const int sensMotPin, const int buzzerPin, LiquidCrys
 void gratingMotorChecking(const int sensMotCheckPin, const int buzzerCheckPin);
 int lampChecking(const int lampSensPin, const int lampStatePin, int lampState, const int buzzerLCPin, LiquidCrystal myLcd);
 uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType);
-void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile);
 void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl);
 void waitingButtonPressed(int pinButton, bool *buttonVal);
 void waitingButtonReleased(int pinButton, bool* buttonVal);
@@ -28,7 +27,6 @@ String getTimeIntoString(DateTime now);
 // int tslSensorInitializationConnection(Adafruit_TSL2591 *myTsl, LiquidCrystal myLcd);
 // int rtcChecking(RTC_DS1307 *myRtc);
 // int SDCardChecking(const int chipSel);
-// void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd);
 // void serialTest(String myString);
 
 // =========================================================================================
@@ -377,57 +375,8 @@ uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 	}
 }
 
-	// Scrivo sulla scheda tutti i valori dello zero rispetto ad ogni lunghezza d'onda
-	
-void backgroundSensor(LiquidCrystal myLcd, DateTime myTime, File *myFile){
-	delay(1000);
-	myLcd.clear();
-	myLcd.setCursor(0, 0); myLcd.print("Opening...");
-	(*myFile) = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
-	if((*myFile)){
-		myLcd.clear();
-		myLcd.setCursor(0, 0); myLcd.print("writing...");
-		delay(2500);
-		(*myFile).println("\n-------------------------------------------------");
-		(*myFile).println("All Specrtum Analysis Data");
-		(*myFile).print("SerialNumber:  ");
-		(*myFile).println("[__________]");
-		(*myFile).print("Timestamp:\t");
-		(*myFile).print(myTime.year(), DEC);
-		(*myFile).print('/');
-		(*myFile).print(myTime.month(), DEC);
-		(*myFile).print('/');
-		(*myFile).print(myTime.day(), DEC);
-		// (*myFile).print(" (");
-		// (*myFile).print(daysOfTheWeek[myTime.dayOfTheWeek()]);
-		// (*myFile).print(") ");
-		(*myFile).print(myTime.hour(), DEC);
-		(*myFile).print(':');
-		(*myFile).print(myTime.minute(), DEC);
-		(*myFile).print(':');
-		(*myFile).println(myTime.second(), DEC);
-		(*myFile).println("-------------------------------------------------");
-		(*myFile).close();
-	}
-	else{
-		myLcd.clear();
-		myLcd.setCursor(0, 0); myLcd.print("problem...  ):");
-		delay(2500);
-	}
-}
 
-// void writeOnFile(File *myFile, uint16_t read, LiquidCrystal myLcd){
-	// (*myFile) = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
-	// if((*myFile)){
-		// (*myFile).print(read + ";");
-		// (*myFile).close();
-	// }
-	// else{
-		// myLcd.clear();
-		// myLcd.setCursor(0, 0); myLcd.print("problem...  ):");
-		// delay(2500);
-	// }
-// }
+
 
 
 // ========================================== OLD ==========================================

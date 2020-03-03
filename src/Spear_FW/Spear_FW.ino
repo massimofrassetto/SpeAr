@@ -22,7 +22,7 @@
 #include "MSG.h"
 #include "FUNCTIONS.h"
 
-Adafruit_TSL2591 m_tsl = Adafruit_TSL2591(ADAFRUIT_SENSOR_IDENTIFIER); // pass in a number for the sensor identifier (for your use later)
+Adafruit_TSL2591 m_tsl = Adafruit_TSL2591(ADAFRUIT_SENSOR_IDENTIFIER); 						// pass in a number for the sensor identifier (for your use later)
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 Adafruit_StepperMotor *m_grtMotor = AFMS.getStepper(MOTOR_STEPS_PER_REVOLUTION, MOTOR_PORT);
@@ -32,8 +32,8 @@ RTC_DS1307 m_rtc;
 LiquidCrystal m_lcd(LCD_PIN_RS, LCD_PIN_ENABLE, LCD_PIN_D4, LCD_PIN_D5, LCD_PIN_D6, LCD_PIN_D7);
 
 File m_spearTraceLogFile;
-File m_allSpectrumFile;
-File m_concAnalysisFile;
+// File m_allSpectrumFile;
+// File m_concAnalysisFile;
 
 const byte ROWS = KEYPAD_ROWS;
 const byte COLS = KEYPAD_COLS;
@@ -227,7 +227,7 @@ void setup(void){
 		}
 		else{
 			Serial.println("Error opening TraceLog");
-			// m_spearTraceLogFile.close();
+			
 		}
 		// ---------------------------------- non scrive sugli altri file.... -----------------------------
 		// ---------------------------------- indagare perchè... ------------------------------------------
@@ -523,11 +523,11 @@ void loop(void){
 									m_lcd.setCursor(0, 0); m_lcd.print("Lambda: ");
 									m_lcd.setCursor(0, 1); m_lcd.print(String(m_lambdaCorrected) + "nm");
 									#ifdef DEBUG_SERIAL
-										if(m_lambdaCorrected<m_lambdaRequested){
-											Serial.print(">> Lambda can't be lower then "); Serial.print(SPECTRALIMIT_LOW); Serial.print("nm. Corrected to that value. Requested was "); Serial.println(m_lambdaRequested);
+										if(m_lambdaCorrected>m_lambdaRequested){
+											Serial.print(">> Lambda can't be lower then "); Serial.print(SPECTRALIMIT_LOW); Serial.print("nm. Corrected to this value. Requested was "); Serial.println(m_lambdaRequested);
 										}
-										else if (m_lambdaCorrected>m_lambdaRequested){
-											Serial.print(">> Lambda can't be higher then "); Serial.print(SPECTRALIMIT_HIGH); Serial.print("nm. Corrected to that value. Requested was "); Serial.println(m_lambdaRequested); 
+										else if (m_lambdaCorrected<m_lambdaRequested){
+											Serial.print(">> Lambda can't be higher then "); Serial.print(SPECTRALIMIT_HIGH); Serial.print("nm. Corrected to this value. Requested was "); Serial.println(m_lambdaRequested); 
 										}
 										else{
 											Serial.println(">> - Lambda Acceptded!!");
@@ -667,8 +667,8 @@ void loop(void){
 												Serial.print(">> [ Number of reads:\t\t");	Serial.println(m_nReadsCorrected);
 												Serial.print(">> [ Background Average:\t");	Serial.println((m_sumBackgroundReadsVal)/(m_nReadsCorrected));
 												Serial.print(">> [ Sample Average:\t\t");	Serial.println((m_sumSampleReadsVal)/(m_nReadsCorrected));
-												Serial.print(">> [ Trasmittance:\t\t");		Serial.println(trasmittance,DECIMAL_SERIAL_TRASMITTANCE);
-												Serial.print(">> [ Absorbance:\t\t");		Serial.println(absorbance,DECIMAL_SERIAL_ABSORBANCE);
+												Serial.print(">> [ Trasmittance:\t\t");		Serial.print(trasmittance, DECIMAL_SERIAL_TRASMITTANCE);	trasmittance>1 	? Serial.println(" - (>1) ?(0_o)?") : Serial.println();
+												Serial.print(">> [ Absorbance:\t\t");		Serial.print(absorbance, DECIMAL_SERIAL_ABSORBANCE);		absorbance<0 	? Serial.println(" - (>1) ?(0_o)?") : Serial.println();
 												Serial.print(">> [---------------------------------------------------]\n");
 											#endif
 										}
@@ -752,6 +752,9 @@ void loop(void){
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Spectrum range");
 									m_lcd.setCursor(0, 1); m_lcd.print("Set MAX:  ");
+									#ifdef DEBUG_SERIAL
+										Serial.print(">> Higher Lambda limit requested(nm):\t");
+									#endif
 									m_keyPadString="";
 									while(!digitalRead(BUTTON_PIN_OK)){
 										m_customKey=0;
@@ -759,10 +762,16 @@ void loop(void){
 										if(m_customKey){
 											m_keyPadString=m_keyPadString+m_customKey;
 											m_lcd.setCursor(0, 1); m_lcd.print("Set MAX:  " + m_keyPadString);
+											#ifdef DEBUG_SERIAL
+												Serial.print(m_customKey);
+											#endif
 										}
 									}
 									// waitingButtonReleasedFiltered(BUTTON_PIN_OK, &m_okVal);
 									waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
+									#ifdef DEBUG_SERIAL
+										Serial.println();
+									#endif
 									m_lambdaRequested=m_keyPadString.toInt();
 									m_lambdaMax=constrain(m_lambdaRequested, SPECTRALIMIT_LOW, SPECTRALIMIT_HIGH);
 									// TODO -> Gestire caso in cui m_lambdaMax < m_lambdaMin
@@ -821,6 +830,7 @@ void loop(void){
 									waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 									m_now = m_rtc.now();
 									#ifdef DEBUG_SERIAL
+										Serial.println(">> Reading Blank...");
 										Serial.print(">> Number of steps to do:\t\t"); Serial.println((m_lambdaMax-m_lambdaMin)/m_deltaLambdaPerSingleStep);
 									#endif
 									for(m_allSpectrumScanReadIndex;m_allSpectrumScanReadIndex<=(m_lambdaMax-m_lambdaMin)/m_deltaLambdaPerSingleStep;m_allSpectrumScanReadIndex++){
@@ -853,68 +863,62 @@ void loop(void){
 										#endif
 										m_grtMotor->step(1, BACKWARD, MOTOR_STEP_TYPE);
 									}
+									m_lcd.clear();
+									m_lcd.setCursor(0, 0); m_lcd.print("Blank Scan End");
+									m_lcd.setCursor(0, 1); m_lcd.print("Resetting Motor.");
+									m_grtMotor->step(m_allSpectrumScanReadIndex, FORWARD, MOTOR_STEP_TYPE);
 									m_grtMotor->release();
-									// backgroundSensor(m_lcd, m_now, m_allSpectrumFile);
-									//	>> ---------------------------------------------------------------------------------------------------------------------- << 
-									// m_lcd.clear();
-									// m_lcd.setCursor(0, 0); m_lcd.print("Opening...");
-									// m_allSpectrumFile = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
-									// if(m_allSpectrumFile){
-										// m_lcd.clear();
-										// m_lcd.setCursor(0, 0); m_lcd.print("writing...");
-										// delay(2500);
-										// m_allSpectrumFile.println("\n-------------------------------------------------");
-										// m_allSpectrumFile.println("All Specrtum Analysis Data");
-										// m_allSpectrumFile.print("SerialNumber:  ");
-										// m_allSpectrumFile.println("[__________]");
-										// m_allSpectrumFile.print("Timestamp:\t");
-										// m_allSpectrumFile.print(getTimeIntoString(m_now));
-										// m_allSpectrumFile.println("-------------------------------------------------");
-										// m_allSpectrumFile.close();
-									// }
-									// else{
-										// m_lcd.clear();
-										// m_lcd.setCursor(0, 0); m_lcd.print("problem...  ):");
-										// delay(2500);
-									// }
-									//	>> ---------------------------------------------------------------------------------------------------------------------- << 
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Load Sample!");
 									m_lcd.setCursor(0, 1); m_lcd.print("'OK' to read...");
-									m_allSpectrumScanID=0;
-									delay(1000);
+									// m_allSpectrumScanID=0;
+									// delay(1000);
 									while(!m_backVal){
 										// m_okVal=digitalRead(BUTTON_PIN_OK);
 										m_backVal=digitalRead(BUTTON_PIN_BACK);
 										if(digitalRead(BUTTON_PIN_OK)){
-											// waitingButtonReleasedFiltered(BUTTON_PIN_OK, &m_okVal);
 											waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
-											m_allSpectrumScanID++;
+											#ifdef DEBUG_SERIAL
+												Serial.print(">> Reading Sample...");
+											#endif
+											m_allSpectrumScanReadIndex=0;
+											for(m_allSpectrumScanReadIndex;m_allSpectrumScanReadIndex<=(m_lambdaMax-m_lambdaMin)/m_deltaLambdaPerSingleStep;m_allSpectrumScanReadIndex++){
+												#ifdef DEBUG_SERIAL
+													Serial.print(">> ;");
+													Serial.print(m_allSpectrumScanReadIndex);
+													Serial.print(";");
+													serialDebugString=String((float)m_lambdaMin+m_deltaLambdaPerSingleStep*(float)m_allSpectrumScanReadIndex);
+													serialDebugString.replace(".",",");
+													Serial.print(serialDebugString);
+													Serial.print(";");
+												#endif
+												m_lcd.clear();
+												m_lcd.setCursor(0, 0); m_lcd.print("Nm: "); m_lcd.print(String((float)m_lambdaMin+m_deltaLambdaPerSingleStep*(float)m_allSpectrumScanReadIndex) + "/" + String(m_lambdaMax));
+												m_lcd.setCursor(0, 1); m_lcd.print("Index: ");
+												m_nReadsCaptured=0;
+												m_sumBackgroundReadsVal=0;
+												for(m_nReadsCaptured; m_nReadsCaptured<m_nReadsCorrected; m_nReadsCaptured++){
+													m_lcd.setCursor(7, 1); m_lcd.print(String(m_nReadsCaptured) + "/" + String(m_nReadsCorrected));
+													m_readsVal=simpleRead(&m_tsl, TSL_READTYPE_VISIBLE);
+													m_sumBackgroundReadsVal+=m_readsVal;
+													#ifdef DEBUG_SERIAL
+														Serial.print(m_readsVal); Serial.print(";");
+													#endif
+												}
+												#ifdef DEBUG_SERIAL
+													serialDebugString=String(m_sumBackgroundReadsVal/m_nReadsCorrected);
+													serialDebugString.replace(".",",");
+													Serial.println(serialDebugString);
+												#endif
+												m_grtMotor->step(1, BACKWARD, MOTOR_STEP_TYPE);
+											}
+											m_grtMotor->release();
 											m_lcd.clear();
-											m_lcd.setCursor(0, 0); m_lcd.print("Reading...");
-											delay(1000);
-											// writeOnFile(m_allSpectrumFile, simpleRead(&m_tsl, TSL_READTYPE_VISIBLE), m_lcd);    // verificare perchè qui non scrive
-											// m_allSpectrumFile = SD.open(ALLSPECTRUM_FILENAME, FILE_WRITE);
-											// // File test = SD.open("Teeest.txt", FILE_WRITE);
-											// delay(1000);
-											// if(m_allSpectrumFile){
-												// //	>> ======================= TODO ======================= << 
-												// for (int i=0;i<m_lambdaMax-m_lambdaMin;i++){
-													// // m_allSpectrumFile.println(String(simpleRead(&m_tsl, TSL_READTYPE_VISIBLE)); m_allSpectrumFile.print(";");
-													// m_allSpectrumFile.println("Holaaaa");
-													// m_allSpectrumFile.println(String(i));
-												// }
-												// m_allSpectrumFile.close();
-												// delay(10);
-												// m_lcd.clear();
-												// m_lcd.setCursor(0, 0); m_lcd.print("Spectrum " + m_allSpectrumScanID);
-												// m_lcd.setCursor(0, 1); m_lcd.print("Saved!");
-											// }
-											// else{
-												// m_lcd.clear();
-												// m_lcd.setCursor(0, 0); m_lcd.print("problem...  ):");
-												// delay(2500);
-											// }
+											m_lcd.setCursor(0, 0); m_lcd.print("Scan Ended!");
+											m_lcd.setCursor(0, 1); m_lcd.print("Again or abort?");
+											#ifdef DEBUG_SERIAL
+												Serial.println(">> Scan Finished. Waiting to repeat or abort...");
+											#endif
 										}
 									}
 									// waitingButtonReleasedFiltered(BUTTON_PIN_BACK, &m_backVal);

@@ -5,7 +5,7 @@
 
 // Informazioni interne della macchina
 #define MODEL_VERSION						"1.0"
-#define FIRMWARE_VERSION					"15.2"
+#define FIRMWARE_VERSION					"15.3"
 #define BUILD_TIMESTAP_DATE					F(__DATE__)
 #define BUILD_TIMESTAP_TIME					F(__TIME__)
 #define INSTRUMENT_NAME						"Spe.Ar"
