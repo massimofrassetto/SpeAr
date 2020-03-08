@@ -134,4 +134,6 @@
 #define MENU_VOICE_3						2
 #define MENU_VOICE_4						3
 
+#define REGRESSIONLINE_NUMBER_VALUES		3
+
 #endif

@@ -92,7 +92,7 @@ void waitingButtonPressedFiltered(int pinButton, bool *buttonVal){
 		}
 		pinButtonVal=0;
 		// #ifdef DEBUG_SERIAL
-			// Serial.print("\n>> Pressed: "); Serial.print(lastStartTimeRecording);
+			// Serial.print("\n Pressed: "); Serial.print(lastStartTimeRecording);
 		// #endif
 		while(digitalRead(pinButton)&&!buttonPressValid){
 			lastStopTimeRecording=millis();
@@ -122,7 +122,7 @@ void waitingButtonReleasedFiltered(int pinButton, bool *buttonVal){
 			lastStartTimeRecording=millis();
 		}
 		#ifdef DEBUG_SERIAL
-			Serial.print(">> Released: "); Serial.print(lastStartTimeRecording);
+			Serial.print("Released: "); Serial.print(lastStartTimeRecording);
 		#endif
 		while(!digitalRead(pinButton)&&!buttonReleasedValid){
 			lastStopTimeRecording=millis();
@@ -143,7 +143,7 @@ String getTimeIntoString(DateTime now){
 								String(now.month(), DEC)	+
 								"/"							+
 								String(now.day(), DEC)		+
-								";"					+
+								";"							+
 								String(now.hour(), DEC)		+
 								":"							+
 								String(now.minute(), DEC)	+
@@ -193,7 +193,7 @@ void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integra
 			break;
 	}
 	#ifdef DEBUG_SERIAL
-		Serial.print(">>\t#Gain:\t\t\t\t");
+		Serial.print("\t#Gain:\t\t\t\t");
 	#endif
 	tsl2591Gain_t gain = (*myTsl).getGain();
 	#ifdef DEBUG_SERIAL
@@ -211,7 +211,7 @@ void tslConfigureSensor(Adafruit_TSL2591 *myTsl, int gainMultiplier, int integra
 				Serial.println("9876x(Max)");
 				break;
 		}
-		Serial.print(">> \t#Timing:\t\t\t"); Serial.print(((*myTsl).getTiming() + 1) * 100, DEC); Serial.println("ms");
+		Serial.print("\t#Timing:\t\t\t"); Serial.print(((*myTsl).getTiming() + 1) * 100, DEC); Serial.println("ms");
 		// delay(1);
 	#endif
 }
@@ -223,12 +223,12 @@ void serialDisplaySensorDetails(Adafruit_TSL2591 *myTsl){
 	sensor_t sensor;
 	(*myTsl).getSensor(&sensor);
 	#ifdef DEBUG_SERIAL
-		Serial.print (">>\t#Sensor: \t\t\t"); 		Serial.println(sensor.name);
-		Serial.print (">>\t#Driver Ver: \t\t\t"); 	Serial.println(sensor.version);
-		Serial.print (">>\t#Unique ID: \t\t\t"); 	Serial.println(sensor.sensor_id);
-		Serial.print (">>\t#Max Value: \t\t\t"); 	Serial.print(sensor.max_value); 	Serial.println(" lux");
-		Serial.print (">>\t#Min Value: \t\t\t"); 	Serial.print(sensor.min_value); 	Serial.println(" lux");
-		Serial.print (">>\t#Resolution: \t\t\t"); 	Serial.print(sensor.resolution); 	Serial.println(" lux");
+		Serial.print ("\t#Sensor: \t\t\t"); 		Serial.println(sensor.name);
+		Serial.print ("\t#Driver Ver: \t\t\t"); 	Serial.println(sensor.version);
+		Serial.print ("\t#Unique ID: \t\t\t"); 	Serial.println(sensor.sensor_id);
+		Serial.print ("\t#Max Value: \t\t\t"); 	Serial.print(sensor.max_value, DEC); 	Serial.println(" lux");
+		Serial.print ("\t#Min Value: \t\t\t"); 	Serial.print(sensor.min_value, DEC); 	Serial.println(" lux");
+		Serial.print ("\t#Resolution: \t\t\t"); 	Serial.print(sensor.resolution, DEC); 	Serial.println(" lux");
 	#endif
 }
 
@@ -276,7 +276,7 @@ int SDinitPlusInfo(const int myChipSel){
 	else{
 		#ifdef DEBUG_SERIAL
 			Serial.println("Initialized");
-			Serial.print(">>\t#Card type:\t\t\t");
+			Serial.print("\t#Card type:\t\t\t");
 			switch(card.type()){
 				case SD_CARD_TYPE_SD1:
 					Serial.println("SD1");
@@ -290,19 +290,19 @@ int SDinitPlusInfo(const int myChipSel){
 				default:
 					Serial.println("Unknown");
 			}
-			Serial.print(">>\t#Clusters:\t\t\t");			Serial.println(volume.clusterCount());
-			Serial.print(">>\t#Blocks x Cluster:\t\t");		Serial.println(volume.blocksPerCluster());
-			Serial.print(">>\t#Total Blocks:\t\t\t");		Serial.println(volume.blocksPerCluster() * volume.clusterCount());
+			Serial.print("\t#Clusters:\t\t\t");			Serial.println(volume.clusterCount());
+			Serial.print("\t#Blocks x Cluster:\t\t");		Serial.println(volume.blocksPerCluster());
+			Serial.print("\t#Total Blocks:\t\t\t");		Serial.println(volume.blocksPerCluster() * volume.clusterCount());
 			uint32_t volumesize;								// print the type and size of the first FAT-type volume
-			Serial.print(">>\t#Volume type is:\t\tFAT");	Serial.println(volume.fatType(), DEC);
+			Serial.print("\t#Volume type is:\t\tFAT");	Serial.println(volume.fatType(), DEC);
 			volumesize = volume.blocksPerCluster();				// clusters are collections of blocks
 			volumesize *= volume.clusterCount();				// we'll have a lot of clusters
 			volumesize /= 2;									// SD card blocks are always 512 bytes (2 blocks are 1KB)
-			Serial.print(">>\t#Volume size (Kb):\t\t");		Serial.println(volumesize);
+			Serial.print("\t#Volume size (Kb):\t\t");		Serial.println(volumesize);
 			volumesize /= 1024;
-			Serial.print(">>\t#Volume size (Mb):\t\t");		Serial.println(volumesize);
-			Serial.print(">>\t#Volume size (Gb):\t\t");		Serial.println((float)volumesize / 1024.0);
-			Serial.println(">>\t#Files found on the card (name, date and size in bytes):");
+			Serial.print("\t#Volume size (Mb):\t\t");		Serial.println(volumesize);
+			Serial.print("\t#Volume size (Gb):\t\t");		Serial.println((float)volumesize / 1024.0);
+			Serial.println("\t#Files found on the card (name, date and size in bytes):");
 			Serial.println("---------------------------------------------------------------------");
 			root.openRoot(volume);
 			root.ls( LS_R | LS_DATE | LS_SIZE );				// list all files in the card with date and size
@@ -429,7 +429,7 @@ uint16_t simpleRead(Adafruit_TSL2591 *myTsl, int tslReadType){
 	// //uint16_t x = (*myTsl).getLuminosity(TSL2561_FULLSPECTRUM);
 	// //uint16_t x = (*myTsl).getLuminosity(TSL2561_INFRARED);
 
-	// Serial.print(">> "); Serial.println(x, DEC);		//rimuovere dal di qui
+	// Serial.print(" "); Serial.println(x, DEC);		//rimuovere dal di qui
 	// m_readsVal=x;
 // }
 #endif

@@ -18,6 +18,8 @@
 
 #include <Keypad.h>
 
+#include <LinearRegression.h>
+
 #include "CONSTANTS.h"
 #include "MSG.h"
 #include "FUNCTIONS.h"
@@ -75,12 +77,13 @@ int m_readsVal=0;
 float m_sumBackgroundReadsVal=0;
 float m_sumSampleReadsVal=0;
 
-bool m_backVal=false;
-bool m_nextVal=false;
-bool m_upVal=false;
-bool m_downVal=false;
-bool m_okVal=false;
+bool m_backVal	=false;
+bool m_nextVal	=false;
+bool m_upVal	=false;
+bool m_downVal	=false;
+bool m_okVal	=false;
 
+bool m_analysisAborted;
 int m_lampSwitchVal;
 int m_lampCheckingResult=0;
 int m_indexAnalysisMode=0;
@@ -92,7 +95,10 @@ int m_allSpectrumScanID=0;
 int m_allSpectrumScanReadIndex=0;
 int m_menuArrowCursorPostion=0;
 
-int m_deltaLambdaPerSingleStep=(SPECTRALIMIT_HIGH-SPECTRALIMIT_LOW)/(MOTOR_STEPS_GRATINGLIMIT_HIGH-MOTOR_STEPS_GRATINGLIMIT_LOW);	// [NM/STEP]
+float m_deltaLambdaPerSingleStep=(SPECTRALIMIT_HIGH-SPECTRALIMIT_LOW)/(MOTOR_STEPS_GRATINGLIMIT_HIGH-MOTOR_STEPS_GRATINGLIMIT_LOW);	// [NM/STEP]
+
+LinearRegression m_concLine = LinearRegression();
+double m_regressionLineValues[REGRESSIONLINE_NUMBER_VALUES];
 
 // ===========================================================================================================
 // ================== Inizio fase di preparazione ed inizializzazione dello strumento  =======================
@@ -117,7 +123,7 @@ void setup(void){
 	#endif
 	m_lcd.begin(LCD_COLS, LCD_ROWS);
 	#ifdef DEBUG_SERIAL
-		Serial.println(">> LCD Inizializated;");
+		Serial.println("LCD Inizializated;");
 	#endif
 	m_lcd.setCursor(0, 0); m_lcd.print("Spe.Ar. Project");
 	m_lcd.setCursor(0, 1); m_lcd.print("V "); m_lcd.print(MODEL_VERSION); m_lcd.print(" SW "); m_lcd.print(FIRMWARE_VERSION);
@@ -130,11 +136,11 @@ void setup(void){
 	pinMode(LAMP_PIN_SWITCH, 			OUTPUT);
 	digitalWrite(LAMP_PIN_SWITCH, 		HIGH);
 	#ifdef DEBUG_SERIAL
-		Serial.println(">> I/O Inizializated;");
+		Serial.println("I/O Inizializated;");
 	#endif
 	// Mi connetto all’RTC e verifico che sia in funzione. Se ció non fosse probabilmente bisogna cambiare la pila.
 	#ifdef DEBUG_SERIAL
-		Serial.print(">> RTC Connection...\t\t\t");
+		Serial.print("RTC Connection...\t\t\t");
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Initializing");
@@ -146,8 +152,8 @@ void setup(void){
 		#endif
 		if (!m_rtc.isrunning()) {
 			#ifdef DEBUG_SERIAL
-				Serial.println(">>\t#RTC is NOT running!");
-				Serial.println(">>\t#Build timestamp will be set!");
+				Serial.println("\t#RTC is NOT running!");
+				Serial.println("\t#Build timestamp will be set!");
 			#endif
 			m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));				// following line sets the RTC to the date & time this sketch was compiled
 			// rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));					// This line sets the RTC with an explicit date & time, for example to set January 21, 2014 at 3am you would call:
@@ -156,7 +162,7 @@ void setup(void){
 			// m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));			//Imposta l'orario in modo rapido scommentando questa riga [Stile BRUTAL force] - In futuro l'orario e la data saranno configurabili da pannellino. TODO
 			m_now = m_rtc.now();
 			#ifdef DEBUG_SERIAL
-				Serial.print(">>\t#Current Time:\t\t\t");
+				Serial.print("\t#Current Time:\t\t\t");
 				Serial.print(getTimeIntoString(m_now));
 				Serial.print("(");
 				Serial.print(m_daysOfTheWeek[m_now.dayOfTheWeek()]);
@@ -178,7 +184,7 @@ void setup(void){
 	// avvio la comuncazione con la scheda motori (non è gestito il caso di fallita comunicazione TODO
 	AFMS.begin();
 	#ifdef DEBUG_SERIAL
-		Serial.println(">> Motor Inizializated;");
+		Serial.println("Motor Inizializated;");
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Starting");
@@ -186,7 +192,7 @@ void setup(void){
 	delay(500);
 	//Inizializzo la comunicazione con la schedina SD, rilevo alcune informazioni e scrivo subito sul primo file 
 	#ifdef DEBUG_SERIAL
-		Serial.print(">> Creating SD Card connection...\t");
+		Serial.print("Creating SD Card connection...\t");
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Initializing");
@@ -195,27 +201,27 @@ void setup(void){
 		m_lcd.print("OK!");
 		#ifdef DEBUG_SERIAL
 			Serial.println("Established");
-			Serial.print(">> Initializing SD Card...\t\t");
+			Serial.print("Initializing SD Card...\t\t");
 		#endif
 		switch(SDinitPlusInfo(SD_PIN_CHIPSELECT)){
 			case SD_INITIALIZING_CARD_FAILED:
 				#ifdef DEBUG_SERIAL
 					Serial.println("Failed");
-					Serial.println(">> !!! Initialization Failed !!!");
+					Serial.println("!!! Initialization Failed !!!");
 				#endif
 				printWiringError(BUZZER_PIN, m_lcd);
 				break;
 			case SD_INITIALIZING_VOLUME_FAILED:
 				#ifdef DEBUG_SERIAL
 					Serial.println("Failed");
-					Serial.println(">> !!! Could not find FAT16/FAT32 partition !!!");
-					Serial.println(">> !!! Make sure you've formatted the card !!!");
+					Serial.println("!!! Could not find FAT16/FAT32 partition !!!");
+					Serial.println("!!! Make sure you've formatted the card !!!");
 				#endif
 				printWiringError(BUZZER_PIN, m_lcd);
 				break;
 		}
 		#ifdef DEBUG_SERIAL
-			Serial.print(">> Starting TraceLog record...\t\t");
+			Serial.print("Starting TraceLog record...\t\t");
 		#endif
 		m_now = m_rtc.now();
 		m_spearTraceLogFile = SD.open(SPEARTRACELOG_FILENAME, FILE_WRITE);
@@ -223,12 +229,18 @@ void setup(void){
 			m_spearTraceLogFile.print(getTimeIntoString(m_now));
 			m_spearTraceLogFile.println(";--------- Tracelog Started... ---------");
 			m_spearTraceLogFile.close();
-			Serial.println("DONE");
+			#ifdef DEBUG_SERIAL
+				Serial.println("DONE");
+			#endif
 		}
 		else{
-			Serial.println("Error opening TraceLog");
-			
+			#ifdef DEBUG_SERIAL
+				Serial.println("Error opening TraceLog");
+			#endif
 		}
+		#ifdef DEBUG_SERIAL
+			Serial.println("---------------------------------------------------------------------");
+		#endif
 		// ---------------------------------- non scrive sugli altri file.... -----------------------------
 		// ---------------------------------- indagare perchè... ------------------------------------------
 		// delay(1000);
@@ -264,7 +276,7 @@ void setup(void){
 		waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 	}
 	#ifdef DEBUG_SERIAL
-		Serial.print(">> Creating connection to TSL Sensor...\t");
+		Serial.print("Creating connection to TSL Sensor...\t");
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Init.ing TSL...");
@@ -286,11 +298,11 @@ void setup(void){
 		Serial.println("=================== Configuring Connected Devices ===================");
 	#endif
 	#ifdef DEBUG_SERIAL
-		Serial.print(">> Speed Motor Configured:\t\t"); Serial.print(MOTOR_SPEED_RPM); Serial.println("rpm");
+		Serial.print("Speed Motor Configured:\t\t\t"); Serial.print(MOTOR_SPEED_RPM); Serial.println("rpm");
 	#endif
 	m_grtMotor->setSpeed(MOTOR_SPEED_RPM);
 	#ifdef DEBUG_SERIAL
-		Serial.print(">> Checking Lamp...\t\t\t");
+		Serial.print("Checking Lamp...\t\t\t");
 	#endif
 	m_lcd.clear();
 	m_lcd.setCursor(0, 0); m_lcd.print("Lamp");
@@ -298,7 +310,7 @@ void setup(void){
 	m_lampCheckingResult=lampChecking(LAMP_PIN_CHECKINGSENSOR, LAMP_PIN_SWITCH, m_lampSwitchVal, BUZZER_PIN, m_lcd);
 	if(m_lampCheckingResult==LAMP_CHECK_PASSED){
 		#ifdef DEBUG_SERIAL
-			Serial.println("WORKING");
+			Serial.println("Working");
 		#endif
 		m_lcd.setCursor(0, 1); m_lcd.print("is OK!!         ");
 	}
@@ -313,12 +325,12 @@ void setup(void){
 		tone(BUZZER_PIN, 400, 1000);
 	}
 	#ifdef DEBUG_SERIAL
-		Serial.println(">> Configuring TSL Sensor...");
+		Serial.println("Configuring TSL Sensor...");
 	#endif
 	tslConfigureSensor(&m_tsl, TSL_GAIN_MAX, TSL_INTEGRATIONTIME_300ms);
 	#ifdef DEBUG_SERIAL
-		Serial.println(">> Configuring Keypad...");
-		Serial.print(">>\t#Debounce Filter:\t\t"); 			Serial.println(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
+		Serial.println("Configuring Keypad...");
+		Serial.print("\t#Debounce Filter:\t\t"); 			Serial.println(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
 	#endif
 	m_customKeypad.setDebounceTime(KEYPAD_ANTIDEBOUNCEFILTER_TIME);
 	#ifdef DEBUG_SERIAL
@@ -413,7 +425,7 @@ void loop(void){
 		case(MENU_LABORATORY):{
 			while(!digitalRead(BUTTON_PIN_BACK)){
 				#ifdef DEBUG_SERIAL
-					Serial.println(">> Entering 'Selection Mode' Menu");
+					Serial.println("Entering 'Selection Mode' Menu");
 				#endif
 				// #ifdef DEBUG_SERIAL
 					// Serial.print("/"); Serial.print(m_okVal); Serial.print("/"); Serial.print(m_backVal); Serial.print("/"); Serial.print(m_nextVal); Serial.print("/"); Serial.print(m_upVal); Serial.print("/"); Serial.println(m_downVal);
@@ -473,8 +485,8 @@ void loop(void){
 					// waitingButtonReleasedFiltered(BUTTON_PIN_OK, &m_okVal);
 					waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 					#ifdef DEBUG_SERIAL
-						Serial.print(">> Mode Selected:\t\t\t"); Serial.print(m_indexAnalysisMode+1); Serial.print(" - "); Serial.println(m_analysisModeLcdString[m_indexAnalysisMode]);
-						Serial.print(">> Waiting confirm...\t\t\t");
+						Serial.print("Mode Selected:\t\t\t\t"); Serial.print(m_indexAnalysisMode+1); Serial.print(" - "); Serial.println(m_analysisModeLcdString[m_indexAnalysisMode]);
+						Serial.print("Waiting confirm...\t\t\t");
 					#endif
 					switch(m_indexAnalysisMode){
 						// Semplice lettura di assorbanza.
@@ -497,7 +509,7 @@ void loop(void){
 									m_lcd.setCursor(0, 0); m_lcd.print("Lambda (nm): ");
 									m_lcd.setCursor(0, 1); m_lcd.print("Set Val: ");
 									#ifdef DEBUG_SERIAL
-										Serial.print(">> Lambda requested(nm):\t\t");
+										Serial.print("Lambda requested(nm):\t\t");
 									#endif
 									m_keyPadString="";
 									while(!digitalRead(BUTTON_PIN_OK)){
@@ -524,20 +536,20 @@ void loop(void){
 									m_lcd.setCursor(0, 1); m_lcd.print(String(m_lambdaCorrected) + "nm");
 									#ifdef DEBUG_SERIAL
 										if(m_lambdaCorrected>m_lambdaRequested){
-											Serial.print(">> Lambda can't be lower then "); Serial.print(SPECTRALIMIT_LOW); Serial.print("nm. Corrected to this value. Requested was "); Serial.println(m_lambdaRequested);
+											Serial.print("Lambda can't be lower then "); Serial.print(SPECTRALIMIT_LOW); Serial.print("nm. Corrected to this value. Requested was "); Serial.println(m_lambdaRequested);
 										}
 										else if (m_lambdaCorrected<m_lambdaRequested){
-											Serial.print(">> Lambda can't be higher then "); Serial.print(SPECTRALIMIT_HIGH); Serial.print("nm. Corrected to this value. Requested was "); Serial.println(m_lambdaRequested); 
+											Serial.print("Lambda can't be higher then "); Serial.print(SPECTRALIMIT_HIGH); Serial.print("nm. Corrected to this value. Requested was "); Serial.println(m_lambdaRequested); 
 										}
 										else{
-											Serial.println(">> - Lambda Acceptded!!");
+											Serial.println("- Lambda Acceptded!!");
 										}
 									#endif
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Set Replicates");
 									m_lcd.setCursor(0, 1); m_lcd.print("n: ");
 									#ifdef DEBUG_SERIAL
-										Serial.print(">> Replicates requested:\t\t");
+										Serial.print("Replicates requested:\t\t");
 									#endif
 									m_keyPadString="";
 									while(!m_okVal){
@@ -562,17 +574,17 @@ void loop(void){
 									if(m_nReadsRequested<MIN_REPLICATES){
 										m_nReadsCorrected=MIN_REPLICATES;
 										#ifdef DEBUG_SERIAL
-											Serial.print(">> Replicates can't be lower then "); Serial.print(MIN_REPLICATES); Serial.print(". Corrected to that value. Requested was "); Serial.println(m_nReadsRequested);
+											Serial.print("Replicates can't be lower then "); Serial.print(MIN_REPLICATES); Serial.print(". Corrected to that value. Requested was "); Serial.println(m_nReadsRequested);
 										#endif
 									}
 									else{
 										m_nReadsCorrected=m_nReadsRequested;
 										#ifdef DEBUG_SERIAL
-											Serial.println(">> - Replicates Acceptded!!");
+											Serial.println("- Replicates Acceptded!!");
 										#endif
 									}
 									#ifdef DEBUG_SERIAL
-										Serial.println(">> Positioning motor...");
+										Serial.println("Positioning motor...");
 									#endif
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Replicates: " + String(m_nReadsCorrected));
@@ -582,7 +594,7 @@ void loop(void){
 									m_grtMotor->step(m_gratingMotorFutureSteps, FORWARD, MOTOR_STEP_TYPE);
 									m_grtMotor->release();
 									#ifdef DEBUG_SERIAL
-										Serial.println(">> Positioning motor done! Waiting confirm to proceed...");
+										Serial.println("Positioning motor done! Waiting confirm to proceed...");
 									#endif
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Press 'OK' to");
@@ -593,7 +605,7 @@ void loop(void){
 									}
 									m_okVal=LOW;
 									#ifdef DEBUG_SERIAL
-										Serial.println(">> Reading blank...");
+										Serial.println("Reading blank...");
 									#endif
 									m_nReadsCaptured=0;
 									m_sumBackgroundReadsVal=0;
@@ -605,7 +617,7 @@ void loop(void){
 										m_readsVal=simpleRead(&m_tsl, TSL_READTYPE_VISIBLE);
 										m_sumBackgroundReadsVal+=m_readsVal;
 										#ifdef DEBUG_SERIAL
-											Serial.print(">> "); Serial.print(m_readsVal);
+											Serial.print(""); Serial.print(m_readsVal);
 										#endif
 									}
 									#ifdef DEBUG_SERIAL
@@ -616,7 +628,7 @@ void loop(void){
 									m_lcd.setCursor(0, 0); m_lcd.print("Load Sample!");
 									m_lcd.setCursor(0, 1); m_lcd.print("'OK' to read...");
 									#ifdef DEBUG_SERIAL
-										Serial.println(">> Blank reads done! Waiting confirm to proceed to Sample...");
+										Serial.println("Blank reads done! Waiting confirm to proceed to Sample...");
 									#endif
 									delay(200);
 									while(!m_okVal && !m_backVal){
@@ -625,7 +637,7 @@ void loop(void){
 										if(m_okVal){
 											m_okVal=LOW;
 											#ifdef DEBUG_SERIAL
-												Serial.println(">> Reading Sample...");
+												Serial.println("Reading Sample...");
 											#endif
 											m_lcd.clear();
 											m_lcd.setCursor(0, 0); m_lcd.print("Reading...");
@@ -637,7 +649,7 @@ void loop(void){
 												m_readsVal=simpleRead(&m_tsl, TSL_READTYPE_VISIBLE);
 												m_sumSampleReadsVal+=m_readsVal;
 												#ifdef DEBUG_SERIAL
-													Serial.print(">> "); Serial.print(m_readsVal);
+													Serial.print(";"); Serial.print(m_readsVal);
 												#endif
 											}
 											#ifdef DEBUG_SERIAL
@@ -647,7 +659,7 @@ void loop(void){
 											m_lcd.setCursor(0, 0); m_lcd.print("--LOADING DATA-");
 											m_lcd.setCursor(0, 1); m_lcd.print("...PLEAS WAIT...");
 											#ifdef DEBUG_SERIAL
-												Serial.println(">> Sample reads done! Calculating results...");
+												Serial.println("Sample reads done! Calculating results...");
 											#endif
 											/* ----------------- Per i prossimi due calcoli è importante ricorda che stiamo lavorando cone delle medie ----------------- */
 											// Si definisce Trasmittanza (T) il rapporto tra l'intensità della luce I in uscita dalla cuvetta e l'intensità I_0 delle luce incidente.
@@ -663,13 +675,13 @@ void loop(void){
 											m_lcd.setCursor(0, 0); m_lcd.print("Abs Sample:");
 											m_lcd.setCursor(0, 1); m_lcd.print(String(absorbance,DECIMAL_LCD_ABSORBANCE));
 											#ifdef DEBUG_SERIAL
-												Serial.print(">> [---------------------------------------------------]\n");
-												Serial.print(">> [ Number of reads:\t\t");	Serial.println(m_nReadsCorrected);
-												Serial.print(">> [ Background Average:\t");	Serial.println((m_sumBackgroundReadsVal)/(m_nReadsCorrected));
-												Serial.print(">> [ Sample Average:\t\t");	Serial.println((m_sumSampleReadsVal)/(m_nReadsCorrected));
-												Serial.print(">> [ Trasmittance:\t\t");		Serial.print(trasmittance, DECIMAL_SERIAL_TRASMITTANCE);	trasmittance>1 	? Serial.println(" - (>1) ?(0_o)?") : Serial.println();
-												Serial.print(">> [ Absorbance:\t\t");		Serial.print(absorbance, DECIMAL_SERIAL_ABSORBANCE);		absorbance<0 	? Serial.println(" - (>1) ?(0_o)?") : Serial.println();
-												Serial.print(">> [---------------------------------------------------]\n");
+												Serial.print("[---------------------------------------------------]\n");
+												Serial.print("[ Number of reads:\t\t");	Serial.println(m_nReadsCorrected);
+												Serial.print("[ Background Average:\t");	Serial.println((m_sumBackgroundReadsVal)/(m_nReadsCorrected));
+												Serial.print("[ Sample Average:\t\t");	Serial.println((m_sumSampleReadsVal)/(m_nReadsCorrected));
+												Serial.print("[ Trasmittance:\t\t");		Serial.print(trasmittance, DECIMAL_SERIAL_TRASMITTANCE);	trasmittance>1 	? Serial.println(" - (>1) ?(0_o)?") : Serial.println();
+												Serial.print("[ Absorbance:\t\t");		Serial.print(absorbance, DECIMAL_SERIAL_ABSORBANCE);		absorbance<0 	? Serial.println(" - (>1) ?(0_o)?") : Serial.println();
+												Serial.print("[---------------------------------------------------]\n");
 											#endif
 										}
 									}
@@ -691,10 +703,10 @@ void loop(void){
 							m_lcd.clear();
 							m_lcd.setCursor(0, 0); m_lcd.print("All Spectrum");
 							m_lcd.setCursor(0, 1); m_lcd.print("selected?");
-							while(!m_okVal && !m_backVal){
-								m_okVal=digitalRead(BUTTON_PIN_OK);
-								m_backVal=digitalRead(BUTTON_PIN_BACK);
-								if(m_okVal){
+							while(!digitalRead(BUTTON_PIN_BACK) && !m_analysisAborted){
+								// m_okVal=digitalRead(BUTTON_PIN_OK);
+								// m_backVal=digitalRead(BUTTON_PIN_BACK);
+								if(digitalRead(BUTTON_PIN_OK)){
 									#ifdef DEBUG_SERIAL
 										Serial.println("All Spectrum Selected!");
 									#endif
@@ -711,7 +723,7 @@ void loop(void){
 									m_lcd.setCursor(0, 0); m_lcd.print("Spectrum range");
 									m_lcd.setCursor(0, 1); m_lcd.print("Set MIN:  ");
 									#ifdef DEBUG_SERIAL
-										Serial.print(">> Lower Lambda limit requested(nm):\t");
+										Serial.print("Lower Lambda limit requested(nm):\t");
 									#endif
 									m_keyPadString="";
 									while(!digitalRead(BUTTON_PIN_OK)){
@@ -753,7 +765,7 @@ void loop(void){
 									m_lcd.setCursor(0, 0); m_lcd.print("Spectrum range");
 									m_lcd.setCursor(0, 1); m_lcd.print("Set MAX:  ");
 									#ifdef DEBUG_SERIAL
-										Serial.print(">> Higher Lambda limit requested(nm):\t");
+										Serial.print("Higher Lambda limit requested(nm):\t");
 									#endif
 									m_keyPadString="";
 									while(!digitalRead(BUTTON_PIN_OK)){
@@ -785,8 +797,8 @@ void loop(void){
 									// waitingButtonPressed(BUTTON_PIN_OK, &m_okVal);
 									// waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 									#ifdef DEBUG_SERIAL
-										Serial.print(">> MIN:\t"); Serial.println(m_lambdaMin);
-										Serial.print(">> MAX:\t"); Serial.println(m_lambdaMax);
+										Serial.print("Lambda MIN:\t\t\t\t"); Serial.println(m_lambdaMin);
+										Serial.print("lambda MAX:\t\t\t\t"); Serial.println(m_lambdaMax);
 									#endif
 									// waitingButtonReleasedFiltered(BUTTON_PIN_OK, &m_okVal);
 									waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
@@ -809,9 +821,7 @@ void loop(void){
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Replicates:  ");
 									m_lcd.setCursor(0, 1); m_lcd.print(m_nReadsCorrected);
-									waitingButtonPressedFiltered(BUTTON_PIN_OK, &m_okVal);
-									// waitingButtonReleasedFiltered(BUTTON_PIN_OK, &m_okVal);
-									// waitingButtonPressed(BUTTON_PIN_OK, &m_okVal);
+									delay(1000);
 									waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Grating Motor");
@@ -830,12 +840,11 @@ void loop(void){
 									waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 									m_now = m_rtc.now();
 									#ifdef DEBUG_SERIAL
-										Serial.println(">> Reading Blank...");
-										Serial.print(">> Number of steps to do:\t\t"); Serial.println((m_lambdaMax-m_lambdaMin)/m_deltaLambdaPerSingleStep);
+										Serial.println("Reading Blank...");
+										Serial.print("Number of steps to do:\t\t\t"); Serial.println((m_lambdaMax-m_lambdaMin)/m_deltaLambdaPerSingleStep);
 									#endif
 									for(m_allSpectrumScanReadIndex;m_allSpectrumScanReadIndex<=(m_lambdaMax-m_lambdaMin)/m_deltaLambdaPerSingleStep;m_allSpectrumScanReadIndex++){
 										#ifdef DEBUG_SERIAL
-											Serial.print(">> ;");
 											Serial.print(m_allSpectrumScanReadIndex);
 											Serial.print(";");
 											serialDebugString=String((float)m_lambdaMin+m_deltaLambdaPerSingleStep*(float)m_allSpectrumScanReadIndex);
@@ -863,6 +872,9 @@ void loop(void){
 										#endif
 										m_grtMotor->step(1, BACKWARD, MOTOR_STEP_TYPE);
 									}
+									#ifdef DEBUG_SERIAL
+										Serial.println("---------------------------------------------------------------------");
+									#endif
 									m_lcd.clear();
 									m_lcd.setCursor(0, 0); m_lcd.print("Blank Scan End");
 									m_lcd.setCursor(0, 1); m_lcd.print("Resetting Motor.");
@@ -873,18 +885,17 @@ void loop(void){
 									m_lcd.setCursor(0, 1); m_lcd.print("'OK' to read...");
 									// m_allSpectrumScanID=0;
 									// delay(1000);
-									while(!m_backVal){
-										// m_okVal=digitalRead(BUTTON_PIN_OK);
+									while(!m_analysisAborted){
+										m_okVal=digitalRead(BUTTON_PIN_OK);
 										m_backVal=digitalRead(BUTTON_PIN_BACK);
-										if(digitalRead(BUTTON_PIN_OK)){
+										if(m_okVal && !m_backVal){
 											waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 											#ifdef DEBUG_SERIAL
-												Serial.print(">> Reading Sample...");
+												Serial.println("Reading Sample...");
 											#endif
 											m_allSpectrumScanReadIndex=0;
 											for(m_allSpectrumScanReadIndex;m_allSpectrumScanReadIndex<=(m_lambdaMax-m_lambdaMin)/m_deltaLambdaPerSingleStep;m_allSpectrumScanReadIndex++){
 												#ifdef DEBUG_SERIAL
-													Serial.print(">> ;");
 													Serial.print(m_allSpectrumScanReadIndex);
 													Serial.print(";");
 													serialDebugString=String((float)m_lambdaMin+m_deltaLambdaPerSingleStep*(float)m_allSpectrumScanReadIndex);
@@ -912,19 +923,27 @@ void loop(void){
 												#endif
 												m_grtMotor->step(1, BACKWARD, MOTOR_STEP_TYPE);
 											}
+											m_grtMotor->step(m_allSpectrumScanReadIndex, FORWARD, MOTOR_STEP_TYPE);
 											m_grtMotor->release();
+											#ifdef DEBUG_SERIAL
+												Serial.println("---------------------------------------------------------------------");
+											#endif
 											m_lcd.clear();
 											m_lcd.setCursor(0, 0); m_lcd.print("Scan Ended!");
 											m_lcd.setCursor(0, 1); m_lcd.print("Again or abort?");
 											#ifdef DEBUG_SERIAL
-												Serial.println(">> Scan Finished. Waiting to repeat or abort...");
+												Serial.println("Scan Finished. Waiting to repeat or abort...");
 											#endif
+										}
+										else if(!m_okVal && m_backVal){
+											waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
+											m_analysisAborted=true;
 										}
 									}
 									// waitingButtonReleasedFiltered(BUTTON_PIN_BACK, &m_backVal);
-									waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
+									// waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
 								}
-								else if(m_backVal){
+								else if(m_backVal || m_analysisAborted){
 									#ifdef DEBUG_SERIAL
 										Serial.println("Return Pressed.");
 									#endif
@@ -933,6 +952,7 @@ void loop(void){
 							// waitingButtonReleasedFiltered(BUTTON_PIN_BACK, &m_backVal);
 							waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
 							m_refreshScreen=true;
+							m_analysisAborted=false;
 							break;				
 						}
 						// Questa è la modalità più complessa.
@@ -944,29 +964,32 @@ void loop(void){
 							m_lcd.clear();
 							m_lcd.setCursor(0, 0); m_lcd.print("Conc. Analysis");
 							m_lcd.setCursor(0, 1); m_lcd.print("selected?");
-							while((m_okVal==LOW) && (m_backVal==LOW)){
+							while(!m_analysisAborted){
 								m_okVal=digitalRead(BUTTON_PIN_OK);
 								m_backVal=digitalRead(BUTTON_PIN_BACK);
 								if(m_okVal){
-									m_okVal=LOW;
+									waitingButtonReleased(BUTTON_PIN_OK, &m_okVal);
 									//	>> ======================= TODO ======================= << 
 								}
 								else if(m_backVal){
+									waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
 									#ifdef DEBUG_SERIAL
 										Serial.println("Return Pressed.");
 									#endif
+									m_analysisAborted=true;
 								}
 							}
 							// waitingButtonReleasedFiltered(BUTTON_PIN_BACK, &m_backVal);
 							waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
 							m_refreshScreen=true;
+							m_analysisAborted=false;
 							break;
 						}
 					}
 				}
 				// waitingButtonReleased(BUTTON_PIN_BACK, &m_backVal);
 				#ifdef DEBUG_SERIAL
-					Serial.println(">> Returning to the selection mode menu");
+					Serial.println("Returning to the selection mode menu");
 				#endif
 			}
 			// waitingButtonReleasedFiltered(BUTTON_PIN_BACK, &m_backVal);
@@ -1027,6 +1050,6 @@ void loop(void){
 	//float iSample=((m_sumSampleReadsVal/(float)m_nReadsCorrected));
 	//float trasmittance=iSample/iSource;
 	//float Abs=log10(1/(iSample/iSource))*1000;
-		//Serial.print(">> [ iSource:\t\t\t");		Serial.println(iSource);
-		//Serial.print(">> [ iSample:\t\t\t");		Serial.println(iSample);
-		//Serial.print(">> [ Abs:\t\t\t");			Serial.print(Abs); 										Serial.println("*10^-3.");
+		//Serial.print("[ iSource:\t\t\t");		Serial.println(iSource);
+		//Serial.print("[ iSample:\t\t\t");		Serial.println(iSample);
+		//Serial.print("[ Abs:\t\t\t");			Serial.print(Abs); 										Serial.println("*10^-3.");
